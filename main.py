@@ -8,7 +8,7 @@ from ui.menu_config import MENU_ESTRUCTURA
 
 def show_splash(screen):
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    splash_path = os.path.join(base_dir, "ui", "assets", "splash.bmp")
+    splash_path = os.path.join(base_dir, "ui", "assets", "images", "splash.bmp")
     try:
         splash_img = Image.open(splash_path).resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
