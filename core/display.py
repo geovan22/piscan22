@@ -34,3 +34,23 @@ class ScreenController:
             subprocess.run([self.kedei_path, self.temp_img], check=True)
         except Exception as e:
             print(f"Error de comunicación con Kedei LCD: {e}")
+
+    def push_zone(self, box):
+        """
+        Corta una sección específica de la RAM y la envía al driver C 
+        con sus coordenadas para evitar recargar (y parpadear) toda la pantalla.
+        box = (x_inicial, y_inicial, x_final, y_final)
+        """
+        x_offset = box[0]
+        y_offset = box[1]
+        
+        # Cortamos solo la parte de la imagen que cambió
+        zona_img = self.image.crop(box)
+        zona_img.save(self.temp_img)
+        
+        try:
+            # Enviamos la imagen diminuta y le indicamos al motor en C dónde pegarla
+            import subprocess
+            subprocess.run([self.kedei_path, self.temp_img, str(x_offset), str(y_offset)], check=True)
+        except Exception as e:
+            print(f"Error actualizando zona: {e}")
