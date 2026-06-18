@@ -1,34 +1,36 @@
+import os
 from core.display import ScreenController
-from ui.themes import COLORS, FONTS, FONT_PATH
-from PIL import ImageFont
+from PIL import Image
 
 def main():
-    print("Cargando Interfaz de PiScan22...")
+    print("Cargando Pantalla de Inicio de PiScan_22 OS...")
     screen = ScreenController()
     
-    # 1. Limpiar el lienzo con el color de fondo definido en themes.py (Negro)
-    screen.clear(color=COLORS["background"])
+    # Obtener la ruta absoluta hacia la imagen splash.bpm
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    splash_path = os.path.join(base_dir, "ui", "assets", "splash.bmp")
     
-    # 2. Intentar cargar la fuente retro física
     try:
-        font_title = ImageFont.truetype(FONT_PATH, FONTS["title"])
-        font_small = ImageFont.truetype(FONT_PATH, FONTS["small"])
+        # 1. Abrir la imagen cargada
+        splash_img = Image.open(splash_path)
+        
+        # 2. Asegurar que tenga el tamaño nativo de la LCD (480x320)
+        splash_img = splash_img.resize((screen.width, screen.height))
+        
+        # 3. Pegar la imagen directamente sobre el lienzo del controlador
+        screen.image.paste(splash_img, (0, 0))
+        
+        print("Imagen splash copiada con éxito al lienzo en memoria.")
+        
     except OSError:
-        print("Error: No se encontró la fuente en la ruta especificada.")
-        print(f"Ruta buscada: {FONT_PATH}")
+        print(f"\n[ERROR] No se pudo encontrar la imagen en: {splash_path}")
+        print("Por favor, asegúrate de haber guardado la imagen como 'splash.png' dentro de 'ui/assets/'.\n")
         return
 
-    # 3. Dibujar textos en el lienzo (x, y)
-    # Título principal
-    screen.draw.text((120, 120), "PiScan OS 22", font=font_title, fill=COLORS["primary"])
-    
-    # Subtítulo pequeño
-    screen.draw.text((120, 160), "Sistema Inicializado...", font=font_small, fill=COLORS["text"])
-    
-    # 4. Empujar todo el lienzo modificado a la memoria RAM y ejecutar el motor C
+    # 4. Empujar el lienzo optimizado en RAM hacia el ejecutable en C
     screen.push_to_screen()
     
-    print("¡Pantalla actualizada! Revisa la LCD.")
+    print("¡Lienzo enviado! Verifica tu pantalla LCD Kedei.")
 
 if __name__ == "__main__":
     main()
