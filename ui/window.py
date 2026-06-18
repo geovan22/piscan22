@@ -28,25 +28,31 @@ class MainWindow:
             self.icon_main = self.font_main
             self.icon_small = self.font_small
 
-    def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False):
+    def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False, battery=100):
         """1. HEADER: Datos del sistema y Botones"""
         self.screen.draw.rectangle((0, 0, self.width, 30), fill="#111111")
         
-        # 1.1 Botones Power y Reset (Ahora son Iconos reales)
+        # 1.1 Botones Power y Reset
         self.screen.draw.text((8, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.screen.draw.text((38, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        # 1.2 Info de Hardware
+        # 1.2 Info de Hardware (Empieza en X=70)
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
         self.screen.draw.text((70, 5), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        # 1.3 Conexión y 1.4 Fecha/Hora
+        # 1.3 Estado de Red, Batería y Hora (Alineados a la derecha)
         fecha_hora = datetime.now().strftime("%d/%m %H:%M")
         icono_red = ICONOS_HEADER["wifi_on"] if connected else ICONOS_HEADER["wifi_off"]
         color_red = COLORS["primary"] if connected else "white"
         
-        # Dibujar icono de red y hora juntos a la derecha
-        self.screen.draw.text((self.width - 140, 5), icono_red, font=self.icon_small, fill=color_red)
+        # Dibujar Batería (Icono + Porcentaje)
+        self.screen.draw.text((self.width - 200, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.screen.draw.text((self.width - 175, 5), f"{battery}%", font=self.font_small, fill="white")
+        
+        # Dibujar Red
+        self.screen.draw.text((self.width - 135, 5), icono_red, font=self.icon_small, fill=color_red)
+        
+        # Dibujar Reloj
         self.screen.draw.text((self.width - 110, 5), fecha_hora, font=self.font_small, fill="white")
         
         self.screen.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)

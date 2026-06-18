@@ -1,56 +1,69 @@
 import os
 import time
 from core.display import ScreenController
+from core.system_info import SystemMonitor
 from PIL import Image
 from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def show_splash(screen):
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    splash_path = os.path.join(base_dir, "ui", "assets", "images","splash.bmp")
+    splash_path = os.path.join(base_dir, "ui", "assets", "splash.bmp")
     try:
         splash_img = Image.open(splash_path).resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
         screen.push_to_screen()
-        print("Pantalla de inicio cargada. Esperando 10 segundos...")
-        time.sleep(10) # Espera solicitada
+        print("Pantalla de inicio cargada. Esperando 5 segundos...")
+        time.sleep(5) # Lo bajé a 5 segs para pruebas, luego lo devuelves a 15
     except OSError:
         print("[ERROR] No se encontró splash.bmp")
 
 def main():
     screen = ScreenController()
+    sys_mon = SystemMonitor() # Inicializamos el lector de hardware
     
-    # 1. Cargar Splash Screen y esperar
+    # 1. Cargar Splash Screen
     show_splash(screen)
     
     # 2. Iniciar Sistema de Ventanas
     window = MainWindow(screen)
     
-    # Menú inicial a mostrar
+    # Estado inicial de la UI
     menu_actual = "Principal"
     opcion_seleccionada = 0
     
-    print("Iniciando Interfaz Principal...")
+    print("Iniciando Bucle Principal de la Interfaz...")
     
-    # 3. Bucle Principal (Mantiene la UI actualizada)
-    # Por ahora corre una vez para pintar la pantalla, luego agregaremos botones físicos/táctiles para que no sea infinito sin control
+    # 3. BUCLE PRINCIPAL (Se repite cada 2 segundos)
     try:
-        # Limpiar lienzo para quitar el splash
-        screen.clear(color="#000000")
-        
-        # Construir las 3 partes
-        # (Aquí pondremos funciones reales de CPU/RAM más adelante, usamos valores fijos por ahora)
-        window.draw_header(cpu="12%", ram="45%", temp="42C", connected=False)
-        window.draw_body(titulo_menu=menu_actual, 
-                         lista_opciones=MENU_ESTRUCTURA[menu_actual], 
-                         indice_seleccionado=opcion_seleccionada)
-        window.draw_footer(mensaje="Esperando entrada del usuario...")
-        
-        # Enviar a la pantalla LCD
-        screen.push_to_screen()
-        
+        while True:
+            # Leer sensores de hardware reales
+            cpu_val = sys_mon.get_cpu()
+            ram_val = sys_mon.get_ram()
+            temp_val = sys_mon.get_temp()
+            net_status = sys_mon.is_connected()
+            bat_val = sys_mon.get_battery()
+            
+            # Limpiar lienzo en la RAM
+            screen.clear(color="#000000")
+            
+            # Dibujar las 3 zonas
+            window.draw_header(cpu=cpu_val, ram=ram_val, temp=temp_val, connected=net_status, battery=bat_val)
+            window.draw_body(titulo_menu=menu_actual, 
+                             lista_opciones=MENU_ESTRUCTURA[menu_actual], 
+                             indice_seleccionado=opcion_seleccionada)
+            window.draw_footer(mensaje="Sistema Activo y Monitoreando...")
+            
+            # Enviar fotograma compuesto a la pantalla LCD
+            screen.push_to_screen()
+            
+            # Pausa de refresco recomendada (2 segundos)
+            time.sleep(2)
+            
     except KeyboardInterrupt:
-        print("Saliendo de PiScan22...")
+        print("\nSaliendo de PiScan22...")
+        screen.clear(color="#000000")
+        screen.push_to_screen()
 
 if __name__ == "__main__":
     main()
