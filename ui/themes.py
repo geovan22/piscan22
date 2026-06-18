@@ -4,7 +4,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Ruta de la fuente retro
-FONT_PATH = os.path.join(BASE_DIR, "ui", "assets", "fonts", "retro.ttf")
+FONT_PATH = os.path.join(BASE_DIR, "ui", "assets", "fonts", "Perfect DOS VGA 437.ttf")
 
 # Paleta de Colores (Estilo Flipper Zero / Terminal Hacker)
 COLORS = {
