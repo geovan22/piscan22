@@ -8,7 +8,7 @@ def main():
     
     # Obtener la ruta absoluta hacia la imagen splash.bpm
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    splash_path = os.path.join(base_dir, "ui", "assets", "splash.bmp")
+    splash_path = os.path.join(base_dir, "ui", "assets/images", "splash.bmp")
     
     try:
         # 1. Abrir la imagen cargada
