@@ -12,8 +12,8 @@ def show_splash(screen):
         splash_img = Image.open(splash_path).resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
         screen.push_to_screen()
-        print("Pantalla de inicio cargada. Esperando 15 segundos...")
-        time.sleep(15) # Espera solicitada
+        print("Pantalla de inicio cargada. Esperando 10 segundos...")
+        time.sleep(10) # Espera solicitada
     except OSError:
         print("[ERROR] No se encontró splash.bmp")
 
