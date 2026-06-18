@@ -1,36 +1,56 @@
 import os
+import time
 from core.display import ScreenController
 from PIL import Image
+from ui.window import MainWindow
+from ui.menu_config import MENU_ESTRUCTURA
+
+def show_splash(screen):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    splash_path = os.path.join(base_dir, "ui", "assets", "splash.bmp")
+    try:
+        splash_img = Image.open(splash_path).resize((screen.width, screen.height))
+        screen.image.paste(splash_img, (0, 0))
+        screen.push_to_screen()
+        print("Pantalla de inicio cargada. Esperando 15 segundos...")
+        time.sleep(15) # Espera solicitada
+    except OSError:
+        print("[ERROR] No se encontró splash.bmp")
 
 def main():
-    print("Cargando Pantalla de Inicio de PiScan_22 OS...")
     screen = ScreenController()
     
-    # Obtener la ruta absoluta hacia la imagen splash.bpm
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    splash_path = os.path.join(base_dir, "ui", "assets", "images",  "splash.bmp")
+    # 1. Cargar Splash Screen y esperar
+    show_splash(screen)
     
+    # 2. Iniciar Sistema de Ventanas
+    window = MainWindow(screen)
+    
+    # Menú inicial a mostrar
+    menu_actual = "Principal"
+    opcion_seleccionada = 0
+    
+    print("Iniciando Interfaz Principal...")
+    
+    # 3. Bucle Principal (Mantiene la UI actualizada)
+    # Por ahora corre una vez para pintar la pantalla, luego agregaremos botones físicos/táctiles para que no sea infinito sin control
     try:
-        # 1. Abrir la imagen cargada
-        splash_img = Image.open(splash_path)
+        # Limpiar lienzo para quitar el splash
+        screen.clear(color="#000000")
         
-        # 2. Asegurar que tenga el tamaño nativo de la LCD (480x320)
-        splash_img = splash_img.resize((screen.width, screen.height))
+        # Construir las 3 partes
+        # (Aquí pondremos funciones reales de CPU/RAM más adelante, usamos valores fijos por ahora)
+        window.draw_header(cpu="12%", ram="45%", temp="42C", connected=False)
+        window.draw_body(titulo_menu=menu_actual, 
+                         lista_opciones=MENU_ESTRUCTURA[menu_actual], 
+                         indice_seleccionado=opcion_seleccionada)
+        window.draw_footer(mensaje="Esperando entrada del usuario...")
         
-        # 3. Pegar la imagen directamente sobre el lienzo del controlador
-        screen.image.paste(splash_img, (0, 0))
+        # Enviar a la pantalla LCD
+        screen.push_to_screen()
         
-        print("Imagen splash copiada con éxito al lienzo en memoria.")
-        
-    except OSError:
-        print(f"\n[ERROR] No se pudo encontrar la imagen en: {splash_path}")
-        print("Por favor, asegúrate de haber guardado la imagen como 'splash.png' dentro de 'ui/assets/'.\n")
-        return
-
-    # 4. Empujar el lienzo optimizado en RAM hacia el ejecutable en C
-    screen.push_to_screen()
-    
-    print("¡Lienzo enviado! Verifica tu pantalla LCD Kedei.")
+    except KeyboardInterrupt:
+        print("Saliendo de PiScan22...")
 
 if __name__ == "__main__":
     main()
