@@ -1,57 +1,58 @@
-import os
+import spidev
 from PIL import Image, ImageDraw
 
 class ScreenController:
     def __init__(self):
         self.width = 480
         self.height = 320
+        # Lienzo maestro en memoria RAM de Python
         self.image = Image.new("RGB", (self.width, self.height), "black")
         self.draw = ImageDraw.Draw(self.image)
         
-        # Detectar el Framebuffer nativo de video (Usualmente fb1 para pantallas SPI, o fb0)
-        self.fb_path = "/dev/fb1" if os.path.exists("/dev/fb1") else "/dev/fb0"
+        # ==============================================================
+        # INICIALIZACIÓN DE HARDWARE SPI (La clave de la fluidez)
+        # ==============================================================
+        try:
+            self.spi = spidev.SpiDev()
+            # Bus 0, Dispositivo 0 (La pantalla de video). El touch usa el 1.
+            self.spi.open(0, 0) 
+            # Velocidad al máximo soportado para evitar barridos (48 MHz)
+            self.spi.max_speed_hz = 48000000 
+            self.spi.mode = 0
+        except Exception as e:
+            print(f"[ALERTA HARDWARE] No se pudo abrir spidev: {e}")
 
     def clear(self, color="black"):
-        """Limpia el lienzo en la memoria de Python"""
+        """Limpia el lienzo lógico en Python"""
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
     def push_to_screen(self):
-        """Envía TODO el lienzo a la pantalla en bytes puros (Sin imágenes)"""
+        """Inyecta la matriz completa de 480x320 cruda por el Bus SPI"""
+        if not hasattr(self, 'spi'): return
+        
+        # Convertir la imagen de Pillow al formato nativo 16-bits (RGB565)
+        # y pasarlo a un array de bytes que spidev pueda procesar al instante
+        raw_bytes = bytearray(self.image.convert("BGR;16").tobytes())
+        
         try:
-            # BGR;16 es el formato interno exacto (RGB565) que usan estas pantallas
-            raw_bytes = self.image.convert("BGR;16").tobytes()
-            with open(self.fb_path, "wb") as fb:
-                fb.write(raw_bytes)
+            # writebytes2 es ultra rápido y no colapsa la memoria
+            self.spi.writebytes2(raw_bytes)
         except Exception as e:
-            print(f"Error escribiendo en memoria de video: {e}")
+            print(f"Error inyectando fotograma SPI: {e}")
 
     def push_zone(self, box):
-        """ 
-        Actualiza SOLO un segmento (ej. Header) inyectando bytes en su offset.
-        ¡Cero parpadeos, cero barridos, cero archivos guardados!
         """
-        x_offset, y_offset, x_final, y_final = box
-        zona_img = self.image.crop(box)
-        raw_bytes = zona_img.convert("BGR;16").tobytes()
+        ACTUALIZACIÓN PARCIAL: Corta solo la zona que cambió (Ej. Header)
+        y la manda por SPI sin reiniciar la pantalla ni borrar lo demás.
+        """
+        if not hasattr(self, 'spi'): return
         
-        zona_width = x_final - x_offset
-        zona_height = y_final - y_offset
-        bytes_por_pixel = 2 # 16 bits = 2 bytes
-
+        # Extraer exactamente el pedacito de pantalla
+        zona_img = self.image.crop(box)
+        raw_bytes = bytearray(zona_img.convert("BGR;16").tobytes())
+        
         try:
-            with open(self.fb_path, "rb+") as fb:
-                # Si la zona ocupa todo el ancho (como nuestro Header que es de 480px)
-                if zona_width == self.width:
-                    offset = (y_offset * self.width) * bytes_por_pixel
-                    fb.seek(offset)
-                    fb.write(raw_bytes)
-                else:
-                    # Si es un recuadro más pequeño, escribimos fila por fila
-                    for y in range(zona_height):
-                        start = y * zona_width * bytes_por_pixel
-                        end = start + (zona_width * bytes_por_pixel)
-                        offset = ((y_offset + y) * self.width + x_offset) * bytes_por_pixel
-                        fb.seek(offset)
-                        fb.write(raw_bytes[start:end])
+            # Enviar únicamente los bytes del recorte
+            self.spi.writebytes2(raw_bytes)
         except Exception as e:
-            print(f"Error escribiendo zona parcial en memoria: {e}")
+            print(f"Error inyectando zona SPI: {e}")
