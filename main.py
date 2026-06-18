@@ -9,22 +9,21 @@ from ui.menu_config import MENU_ESTRUCTURA
 def show_splash(screen):
     """Carga y muestra la imagen de inicio (Splash Screen) a pantalla completa"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Ruta corregida apuntando a la subcarpeta 'images'
     splash_path = os.path.join(base_dir, "ui", "assets", "images", "splash.bmp")
     
     try:
+        # Imprimimos la ruta para estar 100% seguros
+        print(f"Intentando abrir: {splash_path}") 
+        
         splash_img = Image.open(splash_path).resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
         
-        # Enviar la imagen completa usando la inicialización profunda (lcd_init)
         screen.push_full_screen() 
-        
         print("Pantalla de inicio cargada. Esperando 5 segundos...")
         time.sleep(5)
-    except OSError:
-        print(f"[ERROR] No se encontró la imagen en: {splash_path}")
-        print("Asegúrate de que la imagen exista. Saltando al menú principal...")
+    except Exception as e:
+        # AQUI ESTÁ EL TRUCO: Le pedimos a Python que nos diga exactamente qué le molesta
+        print(f"\n[ERROR DETALLADO] Falló la imagen: {e}\n")
 
 def main():
     # Inicializar todos los controladores
