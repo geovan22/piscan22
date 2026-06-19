@@ -7,16 +7,21 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def show_splash(screen, espera=5):
-    """Carga y muestra la imagen de inicio (Splash Screen)"""
+    """Carga y muestra el Logo a prueba de fallos visuales"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     splash_path = os.path.join(base_dir, "ui", "assets", "images", "splash.bmp")
     
     try:
-        splash_img = Image.open(splash_path).resize((screen.width, screen.height))
+        # 1. Forzar limpieza a negro puro
+        screen.clear(color="#000000")
+        
+        # 2. Convert(RGB) arregla cualquier transparencia o formato raro que dejara ver el footer viejo
+        splash_img = Image.open(splash_path).convert("RGB").resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
+        
+        # 3. Enviar comando seguro
         screen.push_full_screen() 
         
-        # Pausa opcional para dejar que el usuario vea el logo
         if espera > 0:
             time.sleep(espera)
     except OSError:
@@ -28,7 +33,6 @@ def main():
     window = MainWindow(screen)
     
     print("Iniciando PiScan22...")
-    # 1. Mostrar Splash al arrancar (espera 4 segundos)
     show_splash(screen, espera=4)
     
     menu_actual = "Principal"
@@ -38,7 +42,6 @@ def main():
     
     try:
         while True:
-            # 2. Dibujar todo en la memoria RAM de Python
             screen.clear(color="#000000")
             window.draw_header(
                 cpu=sys_mon.get_cpu(), 
@@ -54,22 +57,18 @@ def main():
             )
             window.draw_footer(mensaje="Sistema Activo y Monitoreando...")
             
-            # 3. Soltar el comando. Como arreglamos el semáforo, nunca chocará con el C.
-            # En el primer ciclo esto pinta el menú completo perfectamente.
-            # En los siguientes ciclos, como no usamos push_header(), Python sobreescribe
-            # todo, pero visualmente es invisible porque solo cambian los números.
             screen.push_to_screen()
-            
             time.sleep(2)
             
     except KeyboardInterrupt:
         print("\nSaliendo de PiScan22... Mostrando logo de despedida.")
-        # 4. Mostrar el logo antes de morir
-        show_splash(screen, espera=1)
         
-        # Le damos medio segundo al motor C para que termine de pintar el logo
-        # antes de que el script principal lo asesine en la memoria.
-        time.sleep(0.5)
+        # Mandamos pintar el logo pero SIN pausar internamente la función
+        show_splash(screen, espera=0)
+        
+        # CRÍTICO: Le damos 2 segundos exactos de vida a Python para que el
+        # motor en C alcance a recibir la orden y pintar la pantalla antes del apagado.
+        time.sleep(2)
 
 if __name__ == "__main__":
     main()
