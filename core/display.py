@@ -16,15 +16,13 @@ class ScreenController:
         self.daemon_path = os.path.join(self.base_dir, "core", "kedei_daemon")
         self.cmd_path = "/dev/shm/piscan_cmd.txt"
         
-        debug_print("DISPLAY", "Limpiando procesos previos y RAM (/dev/shm)...")
+        debug_print("DISPLAY", "Limpiando RAM y demonio...")
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
         if os.path.exists("/dev/shm/"):
             subprocess.run("rm -f /dev/shm/*.bmp /dev/shm/piscan_cmd.txt", shell=True)
             
-        debug_print("DISPLAY", "Iniciando motor C (kedei_daemon)...")
         self.daemon = subprocess.Popen([self.daemon_path])
         time.sleep(2)
-        debug_print("DISPLAY", "Motor C en ejecución estable.")
 
     def clear(self, color="black"):
         self.image = Image.new("RGB", (self.width, self.height), color)
@@ -32,15 +30,22 @@ class ScreenController:
 
     def push_full_screen(self):
         img_path = "/dev/shm/full.bmp"
-        
-        debug_print("DISPLAY", f"Compilando imagen BMP en {img_path}...")
         self.image.save(img_path, format="BMP")
-        time.sleep(0.1) # Respiro al sistema de archivos
-        
-        debug_print("DISPLAY", "Mandando orden de dibujo (IMG) al motor C...")
+        time.sleep(0.1)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
-        debug_print("DISPLAY", "Comando enviado. El motor C debería estar pintando.")
+
+    def push_header(self):
+        """Recorta y envía EXCLUSIVAMENTE la zona superior (480x30)"""
+        img_path = "/dev/shm/header.bmp"
+        # Coordenadas de recorte: (Izquierda, Arriba, Derecha, Abajo)
+        zona = self.image.crop((0, 0, self.width, 30))
+        zona.save(img_path, format="BMP")
+        time.sleep(0.05) # Pausa mínima de seguridad
+        
+        with open(self.cmd_path, "w") as f:
+            f.write(f"IMG 0 0 {img_path}\n")
+        debug_print("DISPLAY", "Refresco parcial: HEADER actualizado.")
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

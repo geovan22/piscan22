@@ -1,3 +1,4 @@
+
 # ui/window.py
 import os
 from datetime import datetime
@@ -12,20 +13,17 @@ class MainWindow:
         self.width = screen.width
         self.height = screen.height
         
-        debug_print("WINDOW", "Cargando tipografías en memoria...")
         try:
             self.font_main = ImageFont.truetype(FONT_PATH, FONTS["menu"])
             self.font_small = ImageFont.truetype(FONT_PATH, FONTS["small"])
-        except Exception as e:
-            debug_print("WINDOW", f"Error fuente de texto: {e}")
+        except Exception:
             self.font_main = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
             
         try:
             self.icon_main = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_main"])
             self.icon_small = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_small"])
-        except Exception as e:
-            debug_print("WINDOW", f"Error fuente de iconos: {e}")
+        except Exception:
             self.icon_main = self.font_main
             self.icon_small = self.font_small
 
@@ -34,41 +32,55 @@ class MainWindow:
         return self.screen.draw
 
     def draw_logo(self):
-        """Intenta cargar splash.bmp. Si no existe, pinta un logo de texto de emergencia."""
-        debug_print("WINDOW", f"Buscando imagen en: {SPLASH_PATH}")
         try:
             if os.path.exists(SPLASH_PATH):
                 logo_img = Image.open(SPLASH_PATH)
-                # Centrar la imagen matemáticamente
                 pos_x = (self.width - logo_img.width) // 2
                 pos_y = (self.height - logo_img.height) // 2
-                
-                # Pegamos el BMP directamente sobre el canvas negro
                 self.screen.image.paste(logo_img, (pos_x, pos_y))
-                debug_print("WINDOW", "Imagen splash.bmp inyectada en el lienzo correctamente.")
             else:
-                debug_print("WINDOW", "AVISO: splash.bmp no encontrado. Usando texto.")
                 self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
                 self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
-                self.draw.text((170, 170), "Iniciando...", font=self.font_small, fill="white")
         except Exception as e:
-            debug_print("WINDOW", f"Fallo catastrófico al procesar la imagen: {e}")
+            debug_print("WINDOW", f"Fallo imagen: {e}")
 
-    def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False, battery=100):
+    def draw_header(self, cpu="0%", ram="0%", temp="0C", net_type="disconnected", battery=100):
+        # Limpiar zona del header
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")
-        self.draw.text((8, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
-        self.draw.text((38, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
+        
+        # 1. Botones (X=5)
+        self.draw.text((5, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
+        self.draw.text((28, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
+        
+        # 2. Hardware Info (X=55)
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
-        self.draw.text((70, 5), hw_text, font=self.font_small, fill=COLORS["primary"])
-        fecha_hora = datetime.now().strftime("%d/%m %H:%M")
-        icono_red = ICONOS_HEADER["wifi_on"] if connected else ICONOS_HEADER["wifi_off"]
-        color_red = COLORS["primary"] if connected else "white"
-        self.draw.text((self.width - 200, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
-        self.draw.text((self.width - 175, 5), f"{battery}%", font=self.font_small, fill="white")
-        self.draw.text((self.width - 135, 5), icono_red, font=self.icon_small, fill=color_red)
-        self.draw.text((self.width - 110, 5), fecha_hora, font=self.font_small, fill="white")
+        self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
+        
+        # 3. Batería I2C y Porcentaje (X=235)
+        self.draw.text((235, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.draw.text((255, 6), f"{battery}%", font=self.font_small, fill="white")
+        
+        # 4. Estado de Red (X=300)
+        color_red = COLORS["primary"]
+        if net_type == "wifi":
+            icono_red = ICONOS_HEADER["wifi"]
+        elif net_type == "lan":
+            icono_red = ICONOS_HEADER["lan"]
+        else:
+            icono_red = ICONOS_HEADER["disconnected"]
+            color_red = COLORS["danger"] # Rojo si no hay red
+            
+        self.draw.text((300, 5), icono_red, font=self.icon_small, fill=color_red)
+        
+        # 5. Fecha y Hora Formato Completo (X=325)
+        fecha_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        self.draw.text((325, 6), fecha_hora, font=self.font_small, fill="white")
+        
+        # 6. Linea divisoria inferior
         self.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
+    # (MANTÉN AQUÍ TUS FUNCIONES draw_body y draw_footer)
+    
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
         self.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         self.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])

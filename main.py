@@ -2,33 +2,47 @@
 import time
 from core.config import debug_print
 from core.display import ScreenController
+from core.system_info import SystemMonitor
 from ui.window import MainWindow
 
 def main():
-    debug_print("MAIN", "=== INICIANDO FASE 1: PRUEBA DE LOGO AISLADA ===")
+    debug_print("MAIN", "=== INICIANDO FASE 2: PRUEBA DE HEADER === ")
     
     screen = ScreenController()
+    sys_mon = SystemMonitor()
     window = MainWindow(screen)
     
-    debug_print("MAIN", "Limpiando pantalla a negro...")
+    # 1. PANTALLA INICIAL
+    debug_print("MAIN", "Mostrando Logo...")
     screen.clear(color="#000000")
-    
-    # 1. Pega la imagen
     window.draw_logo()
-    
-    # 2. La manda a la pantalla
     screen.push_full_screen()
     
-    debug_print("MAIN", "Secuencia de logo completada.")
-    debug_print("MAIN", "Entrando en espera infinita. Revisa tu pantalla física.")
+    time.sleep(2) # Pausa para ver el logo
+    
+    # 2. LIMPIAR A NEGRO Y PREPARAR SISTEMA
+    screen.clear(color="#000000")
+    screen.push_full_screen() # Esto borra el logo de la pantalla
+    
+    debug_print("MAIN", "Iniciando bucle de reloj en el Header...")
     
     try:
-        # Bucle de bloqueo. No hace nada más que mantener el script vivo.
+        # Bucle que actualizará SOLO el header cada 1 segundo
         while True:
-            time.sleep(1)
+            window.draw_header(
+                cpu=sys_mon.get_cpu(), 
+                ram=sys_mon.get_ram(), 
+                temp=sys_mon.get_temp(), 
+                net_type=sys_mon.get_network_type(), 
+                battery=sys_mon.get_battery()
+            )
+            # Solo mandamos al motor C el pedacito de 480x30
+            screen.push_header() 
+            
+            time.sleep(1) # Esperar un segundo exacto para el reloj
             
     except KeyboardInterrupt:
-        debug_print("MAIN", "Apagando (Ctrl+C detectado)...")
+        debug_print("MAIN", "Apagando sistema...")
         screen.clear(color="#000000")
         screen.push_full_screen()
 

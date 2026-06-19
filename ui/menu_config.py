@@ -4,9 +4,10 @@
 ICONOS_HEADER = {
     "power": "\uf011",       # Símbolo clásico de encendido
     "reset": "\uf2f9",       # Símbolo de recargar/refrescar
-    "wifi_on": "\uf1eb",     # Símbolo de WiFi
-    "wifi_off": "\uf071",    # Símbolo de alerta (triángulo)
-    "battery": "\uf240"
+    "wifi": "\uf1eb",        # Símbolo de WiFi
+    "lan": "\uf6ff",         # Símbolo de red cableada
+    "disconnected": "\uf127",# Símbolo de cadena rota (desconectado)
+    "battery": "\uf240"      # Batería llena
 }
 
 MENU_ESTRUCTURA = {
