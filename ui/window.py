@@ -1,4 +1,3 @@
-
 # ui/window.py
 import os
 from datetime import datetime
@@ -45,7 +44,7 @@ class MainWindow:
             debug_print("WINDOW", f"Fallo imagen: {e}")
 
     def draw_header(self, cpu="0%", ram="0%", temp="0C", net_type="disconnected", battery=100):
-        # Limpiar zona del header
+        # Limpiar zona del header (480x30)
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")
         
         # 1. Botones (X=5)
@@ -56,11 +55,11 @@ class MainWindow:
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
         self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        # 3. Batería I2C y Porcentaje (X=235)
-        self.draw.text((235, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
-        self.draw.text((255, 6), f"{battery}%", font=self.font_small, fill="white")
+        # 3. Batería (X=260) - Dejado listo para el futuro módulo I2C
+        self.draw.text((260, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.draw.text((280, 6), f"{battery}%", font=self.font_small, fill="white")
         
-        # 4. Estado de Red (X=300)
+        # 4. Estado de Red (X=325)
         color_red = COLORS["primary"]
         if net_type == "wifi":
             icono_red = ICONOS_HEADER["wifi"]
@@ -68,19 +67,17 @@ class MainWindow:
             icono_red = ICONOS_HEADER["lan"]
         else:
             icono_red = ICONOS_HEADER["disconnected"]
-            color_red = COLORS["danger"] # Rojo si no hay red
+            color_red = COLORS["danger"] # Rojo si está desconectado
             
-        self.draw.text((300, 5), icono_red, font=self.icon_small, fill=color_red)
+        self.draw.text((325, 5), icono_red, font=self.icon_small, fill=color_red)
         
-        # 5. Fecha y Hora Formato Completo (X=325)
-        fecha_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        self.draw.text((325, 6), fecha_hora, font=self.font_small, fill="white")
+        # 5. Fecha y Hora SIN segundos (X=350)
+        fecha_hora = datetime.now().strftime("%d/%m %H:%M")
+        self.draw.text((350, 6), fecha_hora, font=self.font_small, fill="white")
         
         # 6. Linea divisoria inferior
         self.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
-    # (MANTÉN AQUÍ TUS FUNCIONES draw_body y draw_footer)
-    
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
         self.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         self.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
