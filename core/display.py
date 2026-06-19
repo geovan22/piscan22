@@ -27,19 +27,19 @@ class ScreenController:
         self.draw = ImageDraw.Draw(self.image)
 
     def push_full_screen(self):
-        """Envío atómico: la única forma de evitar el bloqueo en Pi 1 B"""
+        """Envío atómico con BLOQUEO DURO para proteger el bus SPI"""
         img_path = "/dev/shm/full.bmp"
         tmp_path = "/dev/shm/full.tmp"
         
-        # Guardado atómico
         self.image.convert("RGB").save(tmp_path, format="BMP")
         os.rename(tmp_path, img_path)
         
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
         
-        # Pausa necesaria para que el bus SPI libere la carga
-        time.sleep(0.3)
+        # BLOQUEO DURO: Python no hará NADA por 1.2 segundos. 
+        # Esto asegura que el táctil nunca interrumpa el video.
+        time.sleep(1.2) 
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

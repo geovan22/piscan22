@@ -11,7 +11,6 @@ class MainWindow:
         self.width = screen.width
         self.height = screen.height
         
-        # Cargar fuentes de Texto
         try:
             self.font_main = ImageFont.truetype(FONT_PATH, FONTS["menu"])
             self.font_small = ImageFont.truetype(FONT_PATH, FONTS["small"])
@@ -19,7 +18,6 @@ class MainWindow:
             self.font_main = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
             
-        # Cargar fuentes de Iconos
         try:
             self.icon_main = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_main"])
             self.icon_small = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_small"])
@@ -30,22 +28,22 @@ class MainWindow:
 
     @property
     def draw(self):
-        """Devuelve siempre el pincel actual de la pantalla"""
         return self.screen.draw
 
+    def draw_logo(self):
+        """Dibuja la pantalla inicial de arranque"""
+        self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
+        self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
+        self.draw.text((170, 170), "Iniciando...", font=self.font_small, fill="white")
+
     def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False, battery=100):
-        """1. HEADER: Datos del sistema y Botones"""
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")
-        
-        # Botones Power y Reset
         self.draw.text((8, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.draw.text((38, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        # Info de Hardware
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
         self.draw.text((70, 5), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        # Estado de Red, Batería y Hora
         fecha_hora = datetime.now().strftime("%d/%m %H:%M")
         icono_red = ICONOS_HEADER["wifi_on"] if connected else ICONOS_HEADER["wifi_off"]
         color_red = COLORS["primary"] if connected else "white"
@@ -54,14 +52,10 @@ class MainWindow:
         self.draw.text((self.width - 175, 5), f"{battery}%", font=self.font_small, fill="white")
         self.draw.text((self.width - 135, 5), icono_red, font=self.icon_small, fill=color_red)
         self.draw.text((self.width - 110, 5), fecha_hora, font=self.font_small, fill="white")
-        
         self.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
-        """Dibuja el área central (Y: 30 a 290)"""
         self.draw.rectangle((0, 30, self.width, 290), fill="#000000")
-        
-        # Título del Menú usando self.font_main
         self.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
         
         y_offset = 90
@@ -70,14 +64,11 @@ class MainWindow:
             nombre = opcion.get("nombre", "")
             indicador = "  >" if opcion["tipo"] == "submenu" else ""
             
-            # Dibujar Ícono y Texto usando las fuentes correctas
             self.draw.text((20, y_offset), icono, font=self.icon_main, fill=COLORS["primary"])
             self.draw.text((55, y_offset), f"{nombre}{indicador}", font=self.font_main, fill="white")
-            
             y_offset += 45
 
     def draw_footer(self, mensaje="Listo."):
-        """3. FOOTER: Alertas y estado general"""
         y_footer = self.height - 30
         self.draw.line((0, y_footer, self.width, y_footer), fill=COLORS["primary"], width=2)
         self.draw.text((10, y_footer + 5), f"STATUS: {mensaje}", font=self.font_small, fill="white")
