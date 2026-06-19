@@ -26,39 +26,21 @@ class ScreenController:
         self.image = Image.new("RGB", (self.width, self.height), color)
         self.draw = ImageDraw.Draw(self.image)
 
-    def push_logo(self):
-        """Usa un archivo exclusivo para el logo"""
-        img_path = "/dev/shm/logo.bmp"
+    def push_full_screen(self):
+        img_path = "/dev/shm/full.bmp"
+        # Tu guardado original
         self.image.save(img_path, format="BMP")
-        time.sleep(0.1)
-        with open(self.cmd_path, "w") as f:
-            f.write(f"IMG 0 0 {img_path}\n")
-
-    def push_menu_completo(self):
-        """Usa un archivo exclusivo para el menú. Evita corrupción."""
-        img_path = "/dev/shm/menu.bmp"
-        self.image.save(img_path, format="BMP")
-        time.sleep(0.1)
+        time.sleep(0.1) 
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
 
     def push_header(self):
-        """Actualización parcial solo para el reloj"""
         img_path = "/dev/shm/header.bmp"
         zona = self.image.crop((0, 0, self.width, 30))
         zona.save(img_path, format="BMP")
-        time.sleep(0.1)
+        time.sleep(0.05)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
-
-    def push_footer(self):
-        """Actualización parcial solo para mostrar acciones"""
-        img_path = "/dev/shm/footer.bmp"
-        zona = self.image.crop((0, 290, self.width, 320))
-        zona.save(img_path, format="BMP")
-        time.sleep(0.1)
-        with open(self.cmd_path, "w") as f:
-            f.write(f"IMG 0 290 {img_path}\n")
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
