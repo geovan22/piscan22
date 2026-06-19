@@ -11,8 +11,7 @@ def main():
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     
-    touch = TouchScreen()
-    #touch.init() 
+    touch = TouchScreen() 
     
     print("Iniciando PiScan22...")
     menu_actual = "Principal"
@@ -61,7 +60,6 @@ def main():
                             window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
                             window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
                             window.draw_footer(mensaje="Navegando...")
-                            # Inyectar el menú completo al motor C de golpe
                             screen.push_full_screen()
                             
                         # LOGICA DE EJECUCIÓN DIRECTA
