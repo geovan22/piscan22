@@ -34,13 +34,8 @@ class MainWindow:
         try:
             if os.path.exists(SPLASH_PATH):
                 logo_img = Image.open(SPLASH_PATH)
-                
-                # ESCALADO FORZADO: Obligamos a la imagen a ser exactamente 480x320.
-                # Esto soluciona el problema de que solo se vea el 20%.
-                logo_img = logo_img.resize((self.width, self.height))
-                
+                logo_img = logo_img.resize((self.width, self.height)) # Fuerzo 480x320
                 self.screen.image.paste(logo_img, (0, 0))
-                debug_print("WINDOW", "Logo redimensionado a 480x320 y pegado al 100%.")
             else:
                 self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
                 self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
@@ -52,12 +47,12 @@ class MainWindow:
         self.draw.text((5, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.draw.text((28, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        # CPU, RAM, Temp abreviados para ahorrar espacio
+        # Abreviados C:, R:, T:
         hw_text = f"C:{cpu} R:{ram} T:{temp}"
         self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        self.draw.text((250, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
-        self.draw.text((270, 6), f"{battery}%", font=self.font_small, fill="white")
+        self.draw.text((245, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.draw.text((265, 6), f"{battery}%", font=self.font_small, fill="white")
         
         color_red = COLORS["primary"]
         if net_type == "wifi":
@@ -70,7 +65,7 @@ class MainWindow:
             
         self.draw.text((315, 5), icono_red, font=self.icon_small, fill=color_red)
         
-        # Fecha en formato 19/06/26 12:21
+        # Formato: 19/06/26 12:21
         fecha_hora = datetime.now().strftime("%d/%m/%y %H:%M")
         self.draw.text((345, 6), fecha_hora, font=self.font_small, fill="white")
         

@@ -10,26 +10,27 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
-    debug_print("MAIN", "=== INICIANDO FASE 4.1: UI SECTORIZADA + RELOJ INTELIGENTE ===")
+    debug_print("MAIN", "=== INICIANDO PISCAN22: VERSIÓN ESTABLE ===")
     
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     touch = TouchScreen()
     
-    # 1. LOGO DE INICIO AL 100% (Pantalla completa, el bus está fresco)
+    # 1. LOGO DE INICIO
     debug_print("MAIN", "Mostrando Logo redimensionado...")
     screen.clear(color="#000000")
     window.draw_logo()
     screen.push_full_screen()
-    time.sleep(3.5) # Pausa para apreciar el logo y estabilizar el bus
+    # PAUSA SEGURA: El bus SPI descansa mientras miras el logo
+    time.sleep(3.5) 
     
-    # 2. RENDERIZADO INICIAL SECTORIZADO (Como en la Fase 3 que sí funcionó)
-    debug_print("MAIN", "Dibujando UI en la RAM...")
+    # 2. RENDERIZADO DEL MENÚ (Un solo bloque, con protección de tiempo)
     menu_actual = "Principal"
     
     def refresh_full_ui(menu_name):
-        """Dibuja en RAM y envía pieza por pieza para no saturar la pantalla blanca."""
+        """Dibuja en RAM y manda toda la pantalla, protegiendo el bus."""
+        debug_print("MAIN", f"Enviando pantalla completa: Menú {menu_name}")
         screen.clear(color="#000000")
         window.draw_header(
             cpu=sys_mon.get_cpu(), 
@@ -41,51 +42,25 @@ def main():
         window.draw_body(menu_name, MENU_ESTRUCTURA[menu_name])
         window.draw_footer(mensaje="Sistema Activo.")
         
-        debug_print("MAIN", f"Enviando sectores: Menú {menu_name}")
-        
-        # Envíos en bloque pequeño (Cero desfaces, cero pantallas blancas)
-        screen.push_header()
-        time.sleep(0.5)
-        
-        screen.push_body()
-        time.sleep(0.5)
-        
-        screen.push_footer()
-        time.sleep(0.5)
+        screen.push_full_screen()
+        # ¡EL SECRETO DEL ÉXITO DE LA FASE 2!
+        # Bloquea Python 1.5 segundos para que la Raspberry Pi 1 termine
+        # de transmitir el video antes de que el táctil interrumpa el bus.
+        time.sleep(1.5) 
 
-    # Mandamos el menú inicial por sectores
+    # Pintamos el menú por primera vez
     refresh_full_ui(menu_actual)
     
-    # Variables de control
     ultimo_minuto = datetime.now().minute
-    cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
-    # 3. BUCLE PRINCIPAL (TÁCTIL + HEADER INDEPENDIENTE)
-    debug_print("MAIN", "Entrando a bucle principal (Táctil activado)...")
+    debug_print("MAIN", "Bucle principal iniciado (Táctil y Reloj Inteligente activos).")
     
     try:
         while True:
-            # A. EVENTO 1: VERIFICAR TÁCTIL (Navegación)
-            if not os.path.exists(cmd_file_path):
-                pos = touch.get_touch()
-                if pos:
-                    x, y = pos
-                    # Detectar si el toque fue en la zona del menú (Y: 90 a 280)
-                    if 90 < y < 280:
-                        indice = int((y - 90) // 45)
-                        opciones = MENU_ESTRUCTURA[menu_actual]
-                        
-                        if 0 <= indice < len(opciones):
-                            opcion = opciones[indice]
-                            
-                            if opcion["tipo"] in ["submenu", "volver"]:
-                                menu_actual = opcion["destino"]
-                                refresh_full_ui(menu_actual)
-
-            # B. EVENTO 2: RELOJ INTELIGENTE (Actualiza Header solo si cambia el minuto)
+            # A. RELOJ INTELIGENTE (Solo actualiza el Header si cambia el minuto)
             minuto_actual = datetime.now().minute
             if minuto_actual != ultimo_minuto:
-                debug_print("MAIN", "Cambio de minuto detectado. Actualizando Header...")
+                debug_print("MAIN", "Minuto cambiado. Actualizando Header...")
                 window.draw_header(
                     cpu=sys_mon.get_cpu(), 
                     ram=sys_mon.get_ram(), 
@@ -94,9 +69,26 @@ def main():
                     battery=sys_mon.get_battery()
                 )
                 screen.push_header() 
+                time.sleep(0.5) # Pausa de protección del bus SPI para este recorte
                 ultimo_minuto = minuto_actual
-            
-            # C. DESCANSO DEL PROCESADOR
+
+            # B. PANTALLA TÁCTIL (Navegación)
+            pos = touch.get_touch()
+            if pos:
+                x, y = pos
+                # Comprobar si tocó la zona de opciones (Y entre 90 y 280)
+                if 90 < y < 280:
+                    indice = int((y - 90) // 45)
+                    opciones = MENU_ESTRUCTURA[menu_actual]
+                    
+                    if 0 <= indice < len(opciones):
+                        opcion = opciones[indice]
+                        
+                        if opcion["tipo"] in ["submenu", "volver"]:
+                            menu_actual = opcion["destino"]
+                            refresh_full_ui(menu_actual)
+
+            # C. PAUSA DE CPU
             time.sleep(0.1) 
             
     except KeyboardInterrupt:
