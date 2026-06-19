@@ -7,24 +7,23 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
-    debug_print("MAIN", "=== INICIANDO FASE 3: UI COMPLETA Y SECTORIZADA === ")
+    debug_print("MAIN", "=== INICIANDO FASE 3: UI SECTORIZADA ===")
     
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     
-    # 1. LOGO DE INICIO
-    debug_print("MAIN", "Mostrando Logo (ahora con auto-escalado)...")
+    # 1. LOGO DE INICIO AL 100%
+    debug_print("MAIN", "Mostrando Logo redimensionado...")
     screen.clear(color="#000000")
     window.draw_logo()
     screen.push_full_screen()
     time.sleep(3.5) # Pausa para apreciar el logo
     
-    # 2. RENDERIZADO INICIAL COMPLETO DE LA UI
-    debug_print("MAIN", "Preparando Header, Body y Footer iniciales...")
+    # 2. RENDERIZADO DEL MENÚ A LA MEMORIA
+    debug_print("MAIN", "Dibujando UI en la RAM...")
     menu_actual = "Principal"
     
-    # Borramos memoria y dibujamos los 3 bloques en la RAM
     screen.clear(color="#000000")
     window.draw_header(
         cpu=sys_mon.get_cpu(), 
@@ -36,16 +35,23 @@ def main():
     window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
     window.draw_footer(mensaje="Sistema Activo y Esperando.")
     
-    # Mandamos todo junto la primera vez para no ver la carga por partes
-    debug_print("MAIN", "Enviando pantalla completa al panel...")
-    screen.push_full_screen()
-    time.sleep(1)
+    # 3. ENVÍO SECTOR POR SECTOR (ESTO ELIMINA EL "SANGRADO" DEL LOGO)
+    debug_print("MAIN", "Enviando Header...")
+    screen.push_header()
+    time.sleep(0.5)
     
-    # 3. BUCLE DE ACTUALIZACIÓN EN TIEMPO REAL
-    debug_print("MAIN", "Entrando a bucle de reloj (Solo el Header se repintará)...")
+    debug_print("MAIN", "Enviando Body...")
+    screen.push_body()
+    time.sleep(0.5)
+    
+    debug_print("MAIN", "Enviando Footer...")
+    screen.push_footer()
+    time.sleep(0.5)
+    
+    # 4. BUCLE DE ACTUALIZACIÓN EN TIEMPO REAL
+    debug_print("MAIN", "Entrando a bucle de reloj (Solo se refresca el Header)...")
     try:
         while True:
-            # Dibujamos SOLO el header en memoria
             window.draw_header(
                 cpu=sys_mon.get_cpu(), 
                 ram=sys_mon.get_ram(), 
@@ -53,10 +59,8 @@ def main():
                 net_type=sys_mon.get_network_type(), 
                 battery=sys_mon.get_battery()
             )
-            # Y enviamos SOLO el header por SPI (480x30)
             screen.push_header() 
-            
-            time.sleep(1) # Actualiza el reloj cada segundo exacto
+            time.sleep(1) 
             
     except KeyboardInterrupt:
         debug_print("MAIN", "Apagando sistema por orden del usuario...")

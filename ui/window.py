@@ -35,13 +35,12 @@ class MainWindow:
             if os.path.exists(SPLASH_PATH):
                 logo_img = Image.open(SPLASH_PATH)
                 
-                # AUTO-ESCALADO: Obligamos a la imagen a caber en 480x320 
-                # manteniendo su proporción sin recortarse.
-                logo_img.thumbnail((self.width, self.height))
+                # ESCALADO FORZADO: Obligamos a la imagen a ser exactamente 480x320.
+                # Esto soluciona el problema de que solo se vea el 20%.
+                logo_img = logo_img.resize((self.width, self.height))
                 
-                pos_x = (self.width - logo_img.width) // 2
-                pos_y = (self.height - logo_img.height) // 2
-                self.screen.image.paste(logo_img, (pos_x, pos_y))
+                self.screen.image.paste(logo_img, (0, 0))
+                debug_print("WINDOW", "Logo redimensionado a 480x320 y pegado al 100%.")
             else:
                 self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
                 self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
@@ -53,11 +52,12 @@ class MainWindow:
         self.draw.text((5, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.draw.text((28, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
+        # CPU, RAM, Temp abreviados para ahorrar espacio
+        hw_text = f"C:{cpu} R:{ram} T:{temp}"
         self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        self.draw.text((260, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
-        self.draw.text((280, 6), f"{battery}%", font=self.font_small, fill="white")
+        self.draw.text((250, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.draw.text((270, 6), f"{battery}%", font=self.font_small, fill="white")
         
         color_red = COLORS["primary"]
         if net_type == "wifi":
@@ -68,14 +68,15 @@ class MainWindow:
             icono_red = ICONOS_HEADER["disconnected"]
             color_red = COLORS["danger"]
             
-        self.draw.text((325, 5), icono_red, font=self.icon_small, fill=color_red)
+        self.draw.text((315, 5), icono_red, font=self.icon_small, fill=color_red)
         
-        fecha_hora = datetime.now().strftime("%d/%m %H:%M")
-        self.draw.text((350, 6), fecha_hora, font=self.font_small, fill="white")
+        # Fecha en formato 19/06/26 12:21
+        fecha_hora = datetime.now().strftime("%d/%m/%y %H:%M")
+        self.draw.text((345, 6), fecha_hora, font=self.font_small, fill="white")
+        
         self.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
-        # Limita rigurosamente el dibujo a la zona Y: 30 a 290
         self.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         self.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
         y_offset = 90
@@ -88,7 +89,6 @@ class MainWindow:
             y_offset += 45
 
     def draw_footer(self, mensaje="Listo."):
-        # Limita rigurosamente el dibujo a la zona Y: 290 a 320
         self.draw.rectangle((0, 290, self.width, 320), fill="#111111")
         self.draw.line((0, 290, self.width, 290), fill=COLORS["primary"], width=2)
         self.draw.text((10, 298), f"STATUS: {mensaje}", font=self.font_small, fill="white")
