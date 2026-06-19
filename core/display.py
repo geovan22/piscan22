@@ -16,15 +16,15 @@ class ScreenController:
         self.daemon_path = os.path.join(self.base_dir, "core", "kedei_daemon")
         self.cmd_path = "/dev/shm/piscan_cmd.txt"
         
-        debug_print("DISPLAY", "Limpiando demonio anterior y memoria /dev/shm...")
+        debug_print("DISPLAY", "Limpiando procesos previos y RAM (/dev/shm)...")
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
         if os.path.exists("/dev/shm/"):
             subprocess.run("rm -f /dev/shm/*.bmp /dev/shm/piscan_cmd.txt", shell=True)
             
-        debug_print("DISPLAY", "Arrancando motor C (kedei_daemon)...")
+        debug_print("DISPLAY", "Iniciando motor C (kedei_daemon)...")
         self.daemon = subprocess.Popen([self.daemon_path])
         time.sleep(2)
-        debug_print("DISPLAY", "Motor C en ejecución.")
+        debug_print("DISPLAY", "Motor C en ejecución estable.")
 
     def clear(self, color="black"):
         self.image = Image.new("RGB", (self.width, self.height), color)
@@ -33,14 +33,14 @@ class ScreenController:
     def push_full_screen(self):
         img_path = "/dev/shm/full.bmp"
         
-        debug_print("DISPLAY", f"Guardando imagen en RAM: {img_path}")
+        debug_print("DISPLAY", f"Compilando imagen BMP en {img_path}...")
         self.image.save(img_path, format="BMP")
-        time.sleep(0.1) # Breve pausa para asentar el archivo
+        time.sleep(0.1) # Respiro al sistema de archivos
         
-        debug_print("DISPLAY", "Enviando comando al bus SPI...")
+        debug_print("DISPLAY", "Mandando orden de dibujo (IMG) al motor C...")
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
-        debug_print("DISPLAY", "Comando de dibujo enviado.")
+        debug_print("DISPLAY", "Comando enviado. El motor C debería estar pintando.")
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
