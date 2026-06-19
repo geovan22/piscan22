@@ -4,16 +4,10 @@ import time
 from PIL import Image, ImageDraw
 
 class ScreenController:
-    # =========================================================================
-    # CONFIGURACIÓN DEL COMANDO:
-    # Si la pantalla se queda en negro con "BMP", cambia esto a "IMG"
-    # =========================================================================
-    CMD_NAME = "BMP"
-
     def __init__(self):
         self.width = 480
         self.height = 320
-        # Lienzo maestro en la RAM de Python
+        # Lienzo maestro en la memoria RAM de Python
         self.image = Image.new("RGB", (self.width, self.height), "black")
         self.draw = ImageDraw.Draw(self.image)
         
@@ -46,31 +40,32 @@ class ScreenController:
         """Guarda la imagen completa y le ordena al Daemon mapearla en (0,0)"""
         img_path = "/dev/shm/full.bmp"
         self.image.save(img_path)
-        self._send_cmd(f"{self.CMD_NAME} 0 0 {img_path}")
+        # Enviar la instrucción exacta que el C espera: IMG x y ruta
+        self._send_cmd(f"IMG 0 0 {img_path}")
 
     def push_header(self):
         """Corta la franja del Header (480x30) y la reescribe de forma instantánea"""
         img_path = "/dev/shm/header.bmp"
         zona = self.image.crop((0, 0, 480, 30))
         zona.save(img_path)
-        self._send_cmd(f"{self.CMD_NAME} 0 0 {img_path}")
+        self._send_cmd(f"IMG 0 0 {img_path}")
 
     def push_body(self):
         """Corta el área del menú central y la envía indicando el desplazamiento Y=30"""
         img_path = "/dev/shm/body.bmp"
         zona = self.image.crop((0, 30, 480, 290))
         zona.save(img_path)
-        self._send_cmd(f"{self.CMD_NAME} 0 30 {img_path}")
+        self._send_cmd(f"IMG 0 30 {img_path}")
 
     def push_footer(self):
         """Corta la barra de estado inferior y la inyecta en Y=290"""
         img_path = "/dev/shm/footer.bmp"
         zona = self.image.crop((0, 290, 480, 320))
         zona.save(img_path)
-        self._send_cmd(f"{self.CMD_NAME} 0 290 {img_path}")
+        self._send_cmd(f"IMG 0 290 {img_path}")
 
     def _send_cmd(self, command_str):
-        """Escribe la línea exacta en el archivo compartido de la RAM para despertar al C"""
+        """Escribe la línea en el archivo de la RAM y el motor C la procesa instantáneamente"""
         try:
             with open(self.cmd_path, "w") as f:
                 f.write(command_str + "\n")
