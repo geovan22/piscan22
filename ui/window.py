@@ -21,7 +21,7 @@ class MainWindow:
         try:
             self.icon_main = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_main"])
             self.icon_small = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_small"])
-        except Exception as e:
+        except Exception:
             self.icon_main = self.font_main
             self.icon_small = self.font_small
 
@@ -41,20 +41,32 @@ class MainWindow:
         except Exception:
             pass
 
-    def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False, battery=100):
+    def draw_header(self, cpu="0%", ram="0%", temp="0C", net_type="disconnected", battery=100):
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")
-        self.draw.text((5, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
-        self.draw.text((28, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
+        
+        # Carga defensiva de iconos (evita KeyError)
+        ic_power = ICONOS_HEADER.get("power", "P")
+        ic_reset = ICONOS_HEADER.get("reset", "R")
+        ic_batt = ICONOS_HEADER.get("battery", "B")
+        
+        self.draw.text((5, 5), ic_power, font=self.icon_small, fill=COLORS["danger"])
+        self.draw.text((28, 5), ic_reset, font=self.icon_small, fill=COLORS["warning"])
         
         hw_text = f"C:{cpu} R:{ram} T:{temp}"
         self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        self.draw.text((245, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
+        self.draw.text((245, 5), ic_batt, font=self.icon_small, fill=COLORS["primary"])
         self.draw.text((265, 6), f"{battery}%", font=self.font_small, fill="white")
         
-        # Lógica original de tu código
-        icono_red = ICONOS_HEADER["wifi_on"] if connected else ICONOS_HEADER["wifi_off"]
-        color_red = COLORS["primary"] if connected else COLORS["danger"]
+        color_red = COLORS["primary"]
+        if net_type == "wifi":
+            icono_red = ICONOS_HEADER.get("wifi", "\uf1eb")
+        elif net_type == "lan":
+            icono_red = ICONOS_HEADER.get("lan", "\uf6ff")
+        else:
+            icono_red = ICONOS_HEADER.get("disconnected", "\uf071")
+            color_red = COLORS["danger"]
+            
         self.draw.text((315, 5), icono_red, font=self.icon_small, fill=color_red)
         
         fecha_hora = datetime.now().strftime("%d/%m/%y %H:%M")

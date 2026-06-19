@@ -26,11 +26,11 @@ class ScreenController:
         self.image = Image.new("RGB", (self.width, self.height), color)
         self.draw = ImageDraw.Draw(self.image)
 
-    def push_full_screen(self):
-        img_path = "/dev/shm/full.bmp"
-        # Tu guardado original
+    def push_full_screen(self, filename="full.bmp"):
+        """Permite guardar en archivos separados para no corromper la memoria"""
+        img_path = f"/dev/shm/{filename}"
         self.image.save(img_path, format="BMP")
-        time.sleep(0.1) 
+        time.sleep(0.1)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
 
@@ -41,6 +41,14 @@ class ScreenController:
         time.sleep(0.05)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
+
+    def push_footer(self):
+        img_path = "/dev/shm/footer.bmp"
+        zona = self.image.crop((0, 290, self.width, 320))
+        zona.save(img_path, format="BMP")
+        time.sleep(0.05)
+        with open(self.cmd_path, "w") as f:
+            f.write(f"IMG 0 290 {img_path}\n")
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

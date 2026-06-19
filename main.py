@@ -8,101 +8,111 @@ from core.touch import TouchScreen
 from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
+# Funciones defensivas para evitar colapsos por cambios de versión
+def get_net_status(sys_monitor):
+    if hasattr(sys_monitor, 'get_network_type'):
+        return sys_monitor.get_network_type()
+    elif hasattr(sys_monitor, 'is_connected'):
+        return "wifi" if sys_monitor.is_connected() else "disconnected"
+    return "disconnected"
+
+def get_batt_status(sys_monitor):
+    return sys_monitor.get_battery() if hasattr(sys_monitor, 'get_battery') else 100
+
 def main():
-    print("Iniciando Interfaz Original...")
+    print("=== PISCAN22: INICIANDO SISTEMA BLINDADO ===")
+    
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
-    touch = TouchScreen() 
+    touch = TouchScreen()
     
-    # --- 1. PANTALLA DE LOGO ---
+    # 1. PANTALLA DE LOGO
+    print("Enviando Logo...")
     window.draw_logo()
-    screen.push_full_screen()
-    # ESCUDO DE TIEMPO: El logo se pintará sin interrupciones táctiles.
-    time.sleep(3.5) 
+    screen.push_full_screen(filename="logo.bmp")
+    time.sleep(4) # Escudo de tiempo para el bus SPI
     
     menu_actual = "Principal"
     
     def refresh_screen(m_actual):
-        """Tu función original: dibuja, manda y PROTEGE."""
+        """Prepara y envía la interfaz en un solo bloque seguro"""
         screen.clear(color="#000000")
         window.draw_header(
             cpu=sys_mon.get_cpu(), 
             ram=sys_mon.get_ram(), 
             temp=sys_mon.get_temp(), 
-            connected=sys_mon.is_connected(), 
-            battery=sys_mon.get_battery()
+            net_type=get_net_status(sys_mon), 
+            battery=get_batt_status(sys_mon)
         )
         window.draw_body(m_actual, MENU_ESTRUCTURA[m_actual])
         window.draw_footer(mensaje="Esperando orden...")
-        screen.push_full_screen()
         
-        # ESCUDO DE TIEMPO: Evita el error "se va a blanco al cargar el footer"
-        time.sleep(3.5)
+        # Enviamos el menú completo usando otro nombre de archivo (menu.bmp)
+        screen.push_full_screen(filename="menu.bmp")
+        time.sleep(4) # Pausa estricta para evitar colisión de panel táctil
 
-    # --- 2. DIBUJAR MENÚ INICIAL ---
-    print("Enviando Menú...")
+    # 2. DIBUJAR MENÚ INICIAL
+    print("Enviando Menú Principal...")
     refresh_screen(menu_actual)
     
     ultimo_minuto = datetime.now().minute
-    print("Sistema Activo. Bucle Táctil Iniciado.")
+    cmd_file_path = "/dev/shm/piscan_cmd.txt"
+    print("Sistema Activo. Sensores Táctiles Iniciados.")
     
     try:
         while True:
-            # 3. RELOJ INTELIGENTE (Actualiza solo el header)
+            # A. RELOJ INTELIGENTE (Actualiza solo el Header)
             minuto_actual = datetime.now().minute
             if minuto_actual != ultimo_minuto:
-                window.draw_header(
-                    cpu=sys_mon.get_cpu(), 
-                    ram=sys_mon.get_ram(), 
-                    temp=sys_mon.get_temp(), 
-                    connected=sys_mon.is_connected(), 
-                    battery=sys_mon.get_battery()
-                )
-                screen.push_header() 
-                time.sleep(0.5) # Escudo pequeño para el header
-                ultimo_minuto = minuto_actual
+                if not os.path.exists(cmd_file_path):
+                    window.draw_header(
+                        cpu=sys_mon.get_cpu(), 
+                        ram=sys_mon.get_ram(), 
+                        temp=sys_mon.get_temp(), 
+                        net_type=get_net_status(sys_mon), 
+                        battery=get_batt_status(sys_mon)
+                    )
+                    screen.push_header() 
+                    time.sleep(0.5) 
+                    ultimo_minuto = minuto_actual
 
-            # 4. LECTURA TÁCTIL (Tu lógica original intacta)
-            pos = touch.get_touch()
-            if pos:
-                x, y = pos
-                if 90 < y < 280:
-                    indice = int((y - 90) // 45)
-                    opciones = MENU_ESTRUCTURA[menu_actual]
-                    
-                    if 0 <= indice < len(opciones):
-                        opcion = opciones[indice]
+            # B. NAVEGACIÓN TÁCTIL
+            if not os.path.exists(cmd_file_path):
+                pos = touch.get_touch()
+                if pos:
+                    x, y = pos
+                    if 90 < y < 280:
+                        indice = int((y - 90) // 45)
+                        opciones = MENU_ESTRUCTURA[menu_actual]
                         
-                        if opcion["tipo"] in ["submenu", "volver"]:
-                            menu_actual = opcion["destino"]
-                            refresh_screen(menu_actual)
-                        
-                        elif opcion["tipo"] == "accion":
-                            # Refresco temporal para indicar carga
-                            screen.clear(color="#000000")
-                            window.draw_header(
-                                cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), 
-                                connected=sys_mon.is_connected(), battery=sys_mon.get_battery()
-                            )
-                            window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-                            window.draw_footer(mensaje=f"Ejecutando: {opcion['nombre']}")
-                            screen.push_full_screen()
-                            time.sleep(3.5)
+                        if 0 <= indice < len(opciones):
+                            opcion = opciones[indice]
                             
-                            # (Aquí ejecutarías tu herramienta real)
-                            time.sleep(1)
+                            if opcion["tipo"] in ["submenu", "volver"]:
+                                menu_actual = opcion["destino"]
+                                refresh_screen(menu_actual)
                             
-                            # Vuelve a su estado original
-                            refresh_screen(menu_actual)
+                            elif opcion["tipo"] == "accion":
+                                # Refresco del Footer para simular que carga
+                                window.draw_footer(mensaje=f"Iniciando: {opcion['nombre']}")
+                                screen.push_footer()
+                                time.sleep(1)
+                                
+                                # Simulación del trabajo de la herramienta
+                                time.sleep(1.0)
+                                
+                                # Vuelve al estado base
+                                window.draw_footer(mensaje="Esperando orden...")
+                                screen.push_footer()
+                                time.sleep(1)
 
-            # Relajar procesador
             time.sleep(0.1)
             
     except KeyboardInterrupt:
         print("Apagando...")
         screen.clear(color="#000000")
-        screen.push_full_screen()
+        screen.push_full_screen(filename="apagado.bmp")
 
 if __name__ == "__main__":
     main()
