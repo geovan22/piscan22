@@ -1,4 +1,3 @@
-# core/display.py
 import os
 import subprocess
 import time
@@ -8,7 +7,6 @@ class ScreenController:
     def __init__(self):
         self.width = 480
         self.height = 320
-        # MANTENEMOS EL LIENZO Y EL PINCEL AQUÍ
         self.image = Image.new("RGB", (self.width, self.height), "black")
         self.draw = ImageDraw.Draw(self.image)
         
@@ -16,9 +14,7 @@ class ScreenController:
         self.daemon_path = os.path.join(self.base_dir, "core", "kedei_daemon")
         self.cmd_path = "/dev/shm/piscan_cmd.txt"
         
-        # Limpieza segura
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
-        # Comando corregido para evitar el error "missing operand"
         if os.path.exists("/dev/shm/"):
             subprocess.run("rm -f /dev/shm/*.bmp /dev/shm/piscan_cmd.txt", shell=True)
             
@@ -27,11 +23,18 @@ class ScreenController:
 
     def clear(self, color="black"):
         self.image = Image.new("RGB", (self.width, self.height), color)
-        self.draw = ImageDraw.Draw(self.image) # ¡Importante regenerar el pincel!
+        self.draw = ImageDraw.Draw(self.image)
 
     def push_full_screen(self):
+        """Envía la imagen completa de forma atómica para evitar pantalla blanca"""
         img_path = "/dev/shm/full.bmp"
-        self.image.save(img_path, format="BMP")
-        time.sleep(0.1)
+        tmp_path = "/dev/shm/full.tmp"
+        
+        self.image.convert("RGB").save(tmp_path, format="BMP")
+        os.rename(tmp_path, img_path)
+        
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
+
+    def __del__(self):
+        subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
