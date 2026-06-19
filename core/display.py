@@ -1,4 +1,4 @@
-# core/display.py - Controlador de pantalla para PiScan
+# core/display.py
 import os
 import subprocess
 import time
@@ -28,21 +28,19 @@ class ScreenController:
 
     def push_full_screen(self):
         img_path = "/dev/shm/full.bmp"
+        tmp_path = "/dev/shm/full.tmp"
         
-        # 1. Guardar la imagen
-        self.image.save(img_path, format="BMP")
-        time.sleep(0.05) # Pequeña pausa para asegurar la escritura en disco
+        # Guardado atómico
+        self.image.convert("RGB").save(tmp_path, format="BMP")
+        os.rename(tmp_path, img_path)
         
-        # 2. Enviar la orden
+        # Enviar orden
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
             
-        # 3. EL BLOQUEO MAESTRO:
-        # Python se queda atrapado en este bucle hasta que el demonio C
-        # borre el archivo. Esto garantiza CERO colisiones en el bus SPI.
-        timeout = time.time() + 2.5
-        while os.path.exists(self.cmd_path) and time.time() < timeout:
-            time.sleep(0.05)
+        # BLOQUEO FÍSICO: Obligamos a Python a no hacer absolutamente NADA 
+        # por 1.5 segundos. Esto blinda el bus SPI mientras el C dibuja.
+        time.sleep(1.5)
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

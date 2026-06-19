@@ -7,36 +7,35 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
+    print("Iniciando PiScan22...")
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
-    touch = TouchScreen() 
     
-    print("Iniciando Interfaz...")
-    
-    # --- PANTALLA DE LOGO ---
+    # 1. PANTALLA DE LOGO (El touch aún está apagado por seguridad)
     window.draw_logo()
-    # Esta línea ahora detendrá Python hasta que el logo esté 100% dibujado
-    screen.push_full_screen() 
-    time.sleep(1.5) # Dejamos el logo 1.5 segundos para que se vea
+    screen.push_full_screen() # Esto incluye el bloqueo seguro de 1.5s
+    
+    # 2. INICIAR TOUCH (El bus SPI ya está estable)
+    touch = TouchScreen() 
     
     menu_actual = "Principal"
     
     def refresh_screen(m_actual):
-        """Prepara toda la imagen y la envía al controlador"""
+        """Redibuja toda la interfaz de forma segura"""
         screen.clear(color="#000000")
         window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
         window.draw_body(m_actual, MENU_ESTRUCTURA[m_actual])
-        window.draw_footer(mensaje="Esperando orden...")
-        screen.push_full_screen()
+        window.draw_footer(mensaje="Sistema Activo")
+        screen.push_full_screen() # Al terminar esto, el bus queda 100% libre
 
-    # --- DIBUJAR MENÚ INICIAL ---
+    # 3. DIBUJAR MENÚ INICIAL
     refresh_screen(menu_actual)
     
     try:
         while True:
-            # Como push_full_screen bloquea la ejecución mientras se dibuja,
-            # aquí estamos 100% seguros de que el bus SPI está libre para el touch.
+            # Como push_full_screen se paraliza hasta terminar de dibujar,
+            # aquí podemos leer el táctil sin miedo a corromper la imagen.
             pos = touch.get_touch()
             if pos:
                 x, y = pos
@@ -46,9 +45,19 @@ def main():
                     
                     if 0 <= indice < len(opciones):
                         opcion = opciones[indice]
+                        
                         if opcion["tipo"] in ["submenu", "volver"]:
                             menu_actual = opcion["destino"]
                             refresh_screen(menu_actual)
+                            
+                        elif opcion["tipo"] == "accion":
+                            # Feedback visual temporal
+                            screen.clear(color="#000000")
+                            window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
+                            window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
+                            window.draw_footer(mensaje=f"Ejecutando: {opcion['nombre']}")
+                            screen.push_full_screen()
+                            print(f"[COMANDO LANZADO]: {opcion['comando']}")
             
             time.sleep(0.1)
             
