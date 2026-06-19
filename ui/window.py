@@ -34,6 +34,11 @@ class MainWindow:
         try:
             if os.path.exists(SPLASH_PATH):
                 logo_img = Image.open(SPLASH_PATH)
+                
+                # AUTO-ESCALADO: Obligamos a la imagen a caber en 480x320 
+                # manteniendo su proporción sin recortarse.
+                logo_img.thumbnail((self.width, self.height))
+                
                 pos_x = (self.width - logo_img.width) // 2
                 pos_y = (self.height - logo_img.height) // 2
                 self.screen.image.paste(logo_img, (pos_x, pos_y))
@@ -41,25 +46,19 @@ class MainWindow:
                 self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
                 self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
         except Exception as e:
-            debug_print("WINDOW", f"Fallo imagen: {e}")
+            debug_print("WINDOW", f"Fallo al procesar imagen: {e}")
 
     def draw_header(self, cpu="0%", ram="0%", temp="0C", net_type="disconnected", battery=100):
-        # Limpiar zona del header (480x30)
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")
-        
-        # 1. Botones (X=5)
         self.draw.text((5, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.draw.text((28, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        # 2. Hardware Info (X=55)
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
         self.draw.text((55, 6), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        # 3. Batería (X=260) - Dejado listo para el futuro módulo I2C
         self.draw.text((260, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
         self.draw.text((280, 6), f"{battery}%", font=self.font_small, fill="white")
         
-        # 4. Estado de Red (X=325)
         color_red = COLORS["primary"]
         if net_type == "wifi":
             icono_red = ICONOS_HEADER["wifi"]
@@ -67,18 +66,16 @@ class MainWindow:
             icono_red = ICONOS_HEADER["lan"]
         else:
             icono_red = ICONOS_HEADER["disconnected"]
-            color_red = COLORS["danger"] # Rojo si está desconectado
+            color_red = COLORS["danger"]
             
         self.draw.text((325, 5), icono_red, font=self.icon_small, fill=color_red)
         
-        # 5. Fecha y Hora SIN segundos (X=350)
         fecha_hora = datetime.now().strftime("%d/%m %H:%M")
         self.draw.text((350, 6), fecha_hora, font=self.font_small, fill="white")
-        
-        # 6. Linea divisoria inferior
         self.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
+        # Limita rigurosamente el dibujo a la zona Y: 30 a 290
         self.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         self.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
         y_offset = 90
@@ -91,6 +88,7 @@ class MainWindow:
             y_offset += 45
 
     def draw_footer(self, mensaje="Listo."):
-        y_footer = self.height - 30
-        self.draw.line((0, y_footer, self.width, y_footer), fill=COLORS["primary"], width=2)
-        self.draw.text((10, y_footer + 5), f"STATUS: {mensaje}", font=self.font_small, fill="white")
+        # Limita rigurosamente el dibujo a la zona Y: 290 a 320
+        self.draw.rectangle((0, 290, self.width, 320), fill="#111111")
+        self.draw.line((0, 290, self.width, 290), fill=COLORS["primary"], width=2)
+        self.draw.text((10, 298), f"STATUS: {mensaje}", font=self.font_small, fill="white")

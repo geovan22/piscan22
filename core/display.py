@@ -36,16 +36,34 @@ class ScreenController:
             f.write(f"IMG 0 0 {img_path}\n")
 
     def push_header(self):
-        """Recorta y envía EXCLUSIVAMENTE la zona superior (480x30)"""
+        """Recorta y envía la zona superior (Y: 0 a 30)"""
         img_path = "/dev/shm/header.bmp"
-        # Coordenadas de recorte: (Izquierda, Arriba, Derecha, Abajo)
         zona = self.image.crop((0, 0, self.width, 30))
         zona.save(img_path, format="BMP")
-        time.sleep(0.05) # Pausa mínima de seguridad
-        
+        time.sleep(0.05)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
-        debug_print("DISPLAY", "Refresco parcial: HEADER actualizado.")
+        debug_print("DISPLAY", "Refresco parcial: HEADER enviado.")
+
+    def push_body(self):
+        """Recorta y envía el área del menú central (Y: 30 a 290)"""
+        img_path = "/dev/shm/body.bmp"
+        zona = self.image.crop((0, 30, self.width, 290))
+        zona.save(img_path, format="BMP")
+        time.sleep(0.05)
+        with open(self.cmd_path, "w") as f:
+            f.write(f"IMG 0 30 {img_path}\n")
+        debug_print("DISPLAY", "Refresco parcial: BODY enviado.")
+
+    def push_footer(self):
+        """Recorta y envía la zona de estado inferior (Y: 290 a 320)"""
+        img_path = "/dev/shm/footer.bmp"
+        zona = self.image.crop((0, 290, self.width, 320))
+        zona.save(img_path, format="BMP")
+        time.sleep(0.05)
+        with open(self.cmd_path, "w") as f:
+            f.write(f"IMG 0 290 {img_path}\n")
+        debug_print("DISPLAY", "Refresco parcial: FOOTER enviado.")
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
