@@ -10,77 +10,29 @@ def main():
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
+    touch = TouchScreen() # Bus 0, Device 1
     
-    touch = TouchScreen() 
-    
-    print("Iniciando PiScan22...")
+    print("Iniciando Interfaz...")
     menu_actual = "Principal"
     
+    # Dibujo Inicial
     screen.clear(color="#000000")
     window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-    window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
-    window.draw_footer(mensaje="Sistema Activo y Monitoreando...")
+    window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
     screen.push_full_screen()
+    time.sleep(3) # Espera larga para ver si carga
     
-    if hasattr(screen, '_wait_for_daemon'):
-        screen._wait_for_daemon()
-
-    last_header_time = time.time()
-    cmd_file_path = "/dev/shm/piscan_cmd.txt"
-    
-    print("Iniciando Bucle Táctil...")
     try:
         while True:
-            current_time = time.time()
-            
-            # --- TAREA 1: ACTUALIZAR RELOJ (Cada 2 segundos) ---
-            if current_time - last_header_time >= 2.0:
-                window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-                screen.push_header()
-                last_header_time = current_time
-            
-            # --- TAREA 2: LEER PANEL TÁCTIL (Protegido contra colisiones) ---
-            # SEMÁFORO: Solo leemos el táctil si el bus SPI está 100% libre
-            if not os.path.exists(cmd_file_path):
-                pos = touch.get_touch()
-                if pos is not None:
-                    x, y = pos
-                    
-                    if 30 < y < 290:
-                        indice = int((y - 90) // 45)
-                        opciones_actuales = MENU_ESTRUCTURA[menu_actual]
-                        
-                        if 0 <= indice < len(opciones_actuales):
-                            opcion = opciones_actuales[indice]
-                            
-                            if opcion["tipo"] in ["submenu", "volver"]:
-                                menu_actual = opcion["destino"]
-                                screen.clear(color="#000000")
-                                window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-                                window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
-                                window.draw_footer(mensaje="Navegando...")
-                                screen.push_full_screen()
-                                
-                            elif opcion["tipo"] == "accion":
-                                nombre_accion = opcion["nombre"]
-                                comando = opcion["comando"]
-                                window.draw_footer(mensaje=f"Ejecutando: {nombre_accion}...")
-                                screen.push_footer()
-                                print(f"[ACCIÓN DISPARADA]: {comando}")
-                    
-                    # Pausa anti-rebote táctil
-                    time.sleep(0.4)
-            
-            # Bucle ultra rápido
-            time.sleep(0.05)
+            # Solo actualizar reloj si es necesario
+            time.sleep(1)
+            # Prueba de toque simple
+            pos = touch.get_touch()
+            if pos:
+                print(f"Toque detectado en: {pos}")
             
     except KeyboardInterrupt:
-        print("\nApagando PiScan22...")
-        screen.clear(color="#000000")
-        screen.push_full_screen()
-        if hasattr(screen, '_wait_for_daemon'):
-            screen._wait_for_daemon()
-        time.sleep(0.5)
+        print("Apagando...")
 
 if __name__ == "__main__":
     main()
