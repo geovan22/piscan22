@@ -2,10 +2,9 @@
 import spidev
 
 class TouchScreen:
-    def __init__(self, bus=0, device=1): 
+    def __init__(self, bus=0, device=1):
         self.spi = spidev.SpiDev()
         self.spi.open(bus, device)
-        # 50kHz garantiza estabilidad sin saturar la CPU
         self.spi.max_speed_hz = 50000 
         
     def get_touch(self):
@@ -19,7 +18,6 @@ class TouchScreen:
             if x_raw < 200 or y_raw < 200 or x_raw > 3900 or y_raw > 3900:
                 return None
                 
-            # Calibración a 480x320
             pixel_x = int((x_raw - 200) / (3800 - 200) * 480)
             pixel_y = int((y_raw - 200) / (3800 - 200) * 320)
             

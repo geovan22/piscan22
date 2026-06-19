@@ -14,28 +14,29 @@ def main():
     
     print("Iniciando Interfaz...")
     
-    # 1. PANTALLA DE LOGO
+    # --- PANTALLA DE LOGO ---
     window.draw_logo()
-    screen.push_full_screen()
-    time.sleep(1.5) # Tiempo extra para apreciar el logo y estabilizar el sistema
+    # Esta línea ahora detendrá Python hasta que el logo esté 100% dibujado
+    screen.push_full_screen() 
+    time.sleep(1.5) # Dejamos el logo 1.5 segundos para que se vea
     
     menu_actual = "Principal"
     
     def refresh_screen(m_actual):
-        """Dibuja toda la interfaz en memoria y envía al motor C"""
+        """Prepara toda la imagen y la envía al controlador"""
         screen.clear(color="#000000")
         window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
         window.draw_body(m_actual, MENU_ESTRUCTURA[m_actual])
         window.draw_footer(mensaje="Esperando orden...")
         screen.push_full_screen()
 
-    # 2. DIBUJAR MENÚ
+    # --- DIBUJAR MENÚ INICIAL ---
     refresh_screen(menu_actual)
     
     try:
         while True:
-            # Ya no necesitamos verificar el archivo de texto. 
-            # El time.sleep(1.2) en display.py garantiza que el bus está libre.
+            # Como push_full_screen bloquea la ejecución mientras se dibuja,
+            # aquí estamos 100% seguros de que el bus SPI está libre para el touch.
             pos = touch.get_touch()
             if pos:
                 x, y = pos
@@ -52,7 +53,7 @@ def main():
             time.sleep(0.1)
             
     except KeyboardInterrupt:
-        print("Apagando...")
+        print("\nApagando...")
         screen.clear(color="#000000")
         screen.push_full_screen()
 
