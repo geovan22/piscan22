@@ -58,25 +58,26 @@ class MainWindow:
         self.screen.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
 
     def draw_body(self, titulo_menu, lista_opciones, indice_seleccionado=0):
-        """2. BODY: Menú dinámico con iconos al lado del texto"""
-        self.screen.draw.text((10, 40), f"> {titulo_menu}", font=self.font_main, fill="white")
+        """Dibuja el área central (Y: 30 a 290)"""
+        self.screen.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         
-        y_offset = 80
+        # Título del Menú
+        self.screen.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_large, fill=COLORS["primary"])
+        
+        y_offset = 90
         for i, opcion in enumerate(lista_opciones):
-            # Lógica de colores si está seleccionado
-            if i == indice_seleccionado:
-                self.screen.draw.rectangle((10, y_offset, self.width - 10, y_offset + 30), fill=COLORS["primary"])
-                color_texto = COLORS["text_highlight"]
-            else:
-                color_texto = COLORS["primary"]
-                
-            # Primero dibujamos el icono con su fuente propia...
-            self.screen.draw.text((15, y_offset + 2), opcion['icono'], font=self.icon_main, fill=color_texto)
+            icono = opcion.get("icono", "")
+            nombre = opcion.get("nombre", "")
             
-            # ...y luego dibujamos el texto normal justo al lado (+30px a la derecha)
-            self.screen.draw.text((45, y_offset + 2), opcion['nombre'], font=self.font_main, fill=color_texto)
+            # MAGIA VISUAL: Si es un menú que tiene más opciones adentro, le ponemos la flechita
+            indicador = "  >" if opcion["tipo"] == "submenu" else ""
                 
-            y_offset += 40
+            # Combinamos todo: Ícono + Espacio + Nombre + Indicador
+            texto_final = f"{icono}  {nombre}{indicador}"
+            
+            # OJO: Asumo que self.font_medium es la fuente que soporta los caracteres de FontAwesome
+            self.screen.draw.text((20, y_offset), texto_final, font=self.font_medium, fill="white")
+            y_offset += 45
 
     def draw_footer(self, mensaje="Listo."):
         """3. FOOTER: Alertas y estado general"""

@@ -2,79 +2,90 @@ import os
 import time
 from core.display import ScreenController
 from core.system_info import SystemMonitor
-from PIL import Image
+from core.touch import TouchScreen
 from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
-
-def show_splash(screen, espera=5):
-    """Carga y muestra el Logo protegiendo el renderizado completo"""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    splash_path = os.path.join(base_dir, "ui", "assets", "images", "splash.bmp")
-    
-    try:
-        screen.clear(color="#000000")
-        splash_img = Image.open(splash_path).convert("RGB").resize((screen.width, screen.height))
-        screen.image.paste(splash_img, (0, 0))
-        
-        # Enviar orden de pintado
-        screen.push_full_screen() 
-        
-        # MAGIA: Obligar a Python a detenerse hasta que el C termine de pintar.
-        # Esto soluciona que la pantalla se quede a "3 cuartos".
-        if hasattr(screen, '_wait_for_daemon'):
-            screen._wait_for_daemon()
-            
-        if espera > 0:
-            time.sleep(espera)
-    except OSError:
-        print(f"[ERROR] No se encontró la imagen en: {splash_path}")
 
 def main():
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     
+    touch = TouchScreen()
+    touch.init() 
+    
     print("Iniciando PiScan22...")
-    show_splash(screen, espera=3)
-    
     menu_actual = "Principal"
-    opcion_seleccionada = 0
     
-    print("Iniciando Interfaz de Monitoreo...")
-    
-    # 1. Pintamos TODO el menú base una sola vez
+    # 1. Dibujo inicial completo
     screen.clear(color="#000000")
     window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-    window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual], indice_seleccionado=opcion_seleccionada)
+    window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
     window.draw_footer(mensaje="Sistema Activo y Monitoreando...")
     screen.push_full_screen()
     
     if hasattr(screen, '_wait_for_daemon'):
         screen._wait_for_daemon()
+
+    last_header_time = time.time()
     
+    print("Iniciando Bucle Táctil...")
     try:
         while True:
-            # 2. En el bucle, solo reescribimos el Header.
-            # Como son solo 30 píxeles, la Pi 1 B lo inyectará al instante y sin barrido visual.
-            window.draw_header(
-                cpu=sys_mon.get_cpu(), 
-                ram=sys_mon.get_ram(), 
-                temp=sys_mon.get_temp(), 
-                connected=sys_mon.is_connected(), 
-                battery=sys_mon.get_battery()
-            )
+            current_time = time.time()
             
-            screen.push_header()
-            time.sleep(2)
+            # --- TAREA 1: ACTUALIZAR RELOJ (Cada 2 segundos) ---
+            if current_time - last_header_time >= 2.0:
+                window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
+                screen.push_header()
+                last_header_time = current_time
+            
+            # --- TAREA 2: LEER PANEL TÁCTIL ---
+            pos = touch.get_touch()
+            if pos is not None:
+                x, y = pos
+                
+                # Evaluar si el toque fue en la zona del menú (Body)
+                if 30 < y < 290:
+                    indice = int((y - 90) // 45)
+                    opciones_actuales = MENU_ESTRUCTURA[menu_actual]
+                    
+                    if 0 <= indice < len(opciones_actuales):
+                        opcion = opciones_actuales[indice]
+                        
+                        # LOGICA DE NAVEGACIÓN ENTRE NIVELES
+                        if opcion["tipo"] in ["submenu", "volver"]:
+                            menu_actual = opcion["destino"]
+                            # Limpiar memoria RAM de Python y redibujar nuevo menú
+                            screen.clear(color="#000000")
+                            window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
+                            window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
+                            window.draw_footer(mensaje="Navegando...")
+                            # Inyectar el menú completo al motor C de golpe
+                            screen.push_full_screen()
+                            
+                        # LOGICA DE EJECUCIÓN DIRECTA
+                        elif opcion["tipo"] == "accion":
+                            nombre_accion = opcion["nombre"]
+                            comando = opcion["comando"]
+                            window.draw_footer(mensaje=f"Ejecutando: {nombre_accion}...")
+                            screen.push_footer()
+                            print(f"[ACCIÓN DISPARADA]: {comando}")
+                
+                # Pausa anti-rebote (evita doble pulsación por accidente)
+                time.sleep(0.4)
+            
+            # Bucle rápido para mantener la sensibilidad
+            time.sleep(0.05)
             
     except KeyboardInterrupt:
-        print("\nSaliendo de PiScan22... Mostrando logo de despedida.")
-        
-        # Al llamar esto, el script se quedará bloqueado hasta que el logo se haya dibujado.
-        show_splash(screen, espera=0)
-        
-        # Le damos 1 segundo de gracia al hardware antes de asesinar los procesos.
-        time.sleep(1)
+        print("\nApagando PiScan22...")
+        # APAGADO FRÍO PROFESIONAL A NEGRO
+        screen.clear(color="#000000")
+        screen.push_full_screen()
+        if hasattr(screen, '_wait_for_daemon'):
+            screen._wait_for_daemon()
+        time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
