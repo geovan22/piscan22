@@ -1,4 +1,3 @@
-# main.py - Punto de entrada principal para la aplicación PiScan
 import os
 import time
 from core.display import ScreenController
@@ -14,12 +13,13 @@ def main():
     touch = TouchScreen() 
     
     print("Iniciando Interfaz...")
-    menu_actual = "Principal"
+    cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
-    # Dibujo Inicial
+    # --- 1. PANTALLA DE LOGO / BOOT ---
     screen.clear(color="#000000")
-    window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-    window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
+    # Dibujamos un logo en texto (puedes cambiarlo por una imagen luego)
+    window.draw.text((160, 130), ">> PiScan22 <<", font=window.font_main, fill="#00FF00")
+    window.draw.text((150, 160), "Iniciando sistema...", font=window.font_small, fill="white")
     screen.push_full_screen()
     
     # PAUSA CRÍTICA: Esperamos 2 segundos para que veas el logo 
@@ -45,7 +45,7 @@ def main():
     
     try:
         while True:
-            # Solo procesar táctil si el archivo de comando NO existe (bus libre)
+            # Solo leer el touch si el archivo de comando no existe
             if not os.path.exists(cmd_file_path):
                 pos = touch.get_touch()
                 if pos:
@@ -59,13 +59,10 @@ def main():
                             opcion = opciones[indice]
                             if opcion["tipo"] in ["submenu", "volver"]:
                                 menu_actual = opcion["destino"]
-                                screen.clear(color="#000000")
-                                window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-                                window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-                                screen.push_full_screen()
-                                time.sleep(0.5)
+                                refresh_screen(menu_actual)
             
-            time.sleep(0.2) # Pausa mayor para evitar saturación de bus SPI
+            # Relajar el procesador
+            time.sleep(0.1)
             
     except KeyboardInterrupt:
         print("Apagando...")
