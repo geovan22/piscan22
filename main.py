@@ -16,7 +16,6 @@ def main():
     print("Iniciando PiScan22...")
     menu_actual = "Principal"
     
-    # 1. Dibujo inicial completo
     screen.clear(color="#000000")
     window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
     window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
@@ -27,6 +26,7 @@ def main():
         screen._wait_for_daemon()
 
     last_header_time = time.time()
+    cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
     print("Iniciando Bucle Táctil...")
     try:
@@ -39,46 +39,43 @@ def main():
                 screen.push_header()
                 last_header_time = current_time
             
-            # --- TAREA 2: LEER PANEL TÁCTIL ---
-            pos = touch.get_touch()
-            if pos is not None:
-                x, y = pos
-                
-                # Evaluar si el toque fue en la zona del menú (Body)
-                if 30 < y < 290:
-                    indice = int((y - 90) // 45)
-                    opciones_actuales = MENU_ESTRUCTURA[menu_actual]
+            # --- TAREA 2: LEER PANEL TÁCTIL (Protegido contra colisiones) ---
+            # SEMÁFORO: Solo leemos el táctil si el bus SPI está 100% libre
+            if not os.path.exists(cmd_file_path):
+                pos = touch.get_touch()
+                if pos is not None:
+                    x, y = pos
                     
-                    if 0 <= indice < len(opciones_actuales):
-                        opcion = opciones_actuales[indice]
+                    if 30 < y < 290:
+                        indice = int((y - 90) // 45)
+                        opciones_actuales = MENU_ESTRUCTURA[menu_actual]
                         
-                        # LOGICA DE NAVEGACIÓN ENTRE NIVELES
-                        if opcion["tipo"] in ["submenu", "volver"]:
-                            menu_actual = opcion["destino"]
-                            # Limpiar memoria RAM de Python y redibujar nuevo menú
-                            screen.clear(color="#000000")
-                            window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-                            window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
-                            window.draw_footer(mensaje="Navegando...")
-                            screen.push_full_screen()
+                        if 0 <= indice < len(opciones_actuales):
+                            opcion = opciones_actuales[indice]
                             
-                        # LOGICA DE EJECUCIÓN DIRECTA
-                        elif opcion["tipo"] == "accion":
-                            nombre_accion = opcion["nombre"]
-                            comando = opcion["comando"]
-                            window.draw_footer(mensaje=f"Ejecutando: {nombre_accion}...")
-                            screen.push_footer()
-                            print(f"[ACCIÓN DISPARADA]: {comando}")
-                
-                # Pausa anti-rebote (evita doble pulsación por accidente)
-                time.sleep(0.4)
+                            if opcion["tipo"] in ["submenu", "volver"]:
+                                menu_actual = opcion["destino"]
+                                screen.clear(color="#000000")
+                                window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
+                                window.draw_body(titulo_menu=menu_actual, lista_opciones=MENU_ESTRUCTURA[menu_actual])
+                                window.draw_footer(mensaje="Navegando...")
+                                screen.push_full_screen()
+                                
+                            elif opcion["tipo"] == "accion":
+                                nombre_accion = opcion["nombre"]
+                                comando = opcion["comando"]
+                                window.draw_footer(mensaje=f"Ejecutando: {nombre_accion}...")
+                                screen.push_footer()
+                                print(f"[ACCIÓN DISPARADA]: {comando}")
+                    
+                    # Pausa anti-rebote táctil
+                    time.sleep(0.4)
             
-            # Bucle rápido para mantener la sensibilidad
+            # Bucle ultra rápido
             time.sleep(0.05)
             
     except KeyboardInterrupt:
         print("\nApagando PiScan22...")
-        # APAGADO FRÍO PROFESIONAL A NEGRO
         screen.clear(color="#000000")
         screen.push_full_screen()
         if hasattr(screen, '_wait_for_daemon'):

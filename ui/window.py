@@ -11,7 +11,7 @@ class MainWindow:
         self.width = screen.width
         self.height = screen.height
         
-        # Cargar fuentes de Texto
+        # Cargar fuentes de Texto (Bautizadas como self.font_main y self.font_small)
         try:
             self.font_main = ImageFont.truetype(FONT_PATH, FONTS["menu"])
             self.font_small = ImageFont.truetype(FONT_PATH, FONTS["small"])
@@ -19,7 +19,7 @@ class MainWindow:
             self.font_main = ImageFont.load_default()
             self.font_small = ImageFont.load_default()
             
-        # Cargar fuentes de Iconos
+        # Cargar fuentes de Iconos (Bautizadas como self.icon_main y self.icon_small)
         try:
             self.icon_main = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_main"])
             self.icon_small = ImageFont.truetype(ICON_FONT_PATH, FONTS["icon_small"])
@@ -32,27 +32,22 @@ class MainWindow:
         """1. HEADER: Datos del sistema y Botones"""
         self.screen.draw.rectangle((0, 0, self.width, 30), fill="#111111")
         
-        # 1.1 Botones Power y Reset
+        # Botones Power y Reset
         self.screen.draw.text((8, 5), ICONOS_HEADER["power"], font=self.icon_small, fill=COLORS["danger"])
         self.screen.draw.text((38, 5), ICONOS_HEADER["reset"], font=self.icon_small, fill=COLORS["warning"])
         
-        # 1.2 Info de Hardware (Empieza en X=70)
+        # Info de Hardware
         hw_text = f"CPU:{cpu} RAM:{ram} T:{temp}"
         self.screen.draw.text((70, 5), hw_text, font=self.font_small, fill=COLORS["primary"])
         
-        # 1.3 Estado de Red, Batería y Hora (Alineados a la derecha)
+        # Estado de Red, Batería y Hora
         fecha_hora = datetime.now().strftime("%d/%m %H:%M")
         icono_red = ICONOS_HEADER["wifi_on"] if connected else ICONOS_HEADER["wifi_off"]
         color_red = COLORS["primary"] if connected else "white"
         
-        # Dibujar Batería (Icono + Porcentaje)
         self.screen.draw.text((self.width - 200, 5), ICONOS_HEADER["battery"], font=self.icon_small, fill=COLORS["primary"])
         self.screen.draw.text((self.width - 175, 5), f"{battery}%", font=self.font_small, fill="white")
-        
-        # Dibujar Red
         self.screen.draw.text((self.width - 135, 5), icono_red, font=self.icon_small, fill=color_red)
-        
-        # Dibujar Reloj
         self.screen.draw.text((self.width - 110, 5), fecha_hora, font=self.font_small, fill="white")
         
         self.screen.draw.line((0, 30, self.width, 30), fill=COLORS["primary"], width=2)
@@ -61,23 +56,18 @@ class MainWindow:
         """Dibuja el área central (Y: 30 a 290)"""
         self.screen.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         
-        # Título del Menú (Usamos font_main ya que es tu fuente principal)
+        # Título del Menú usando self.font_main
         self.screen.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
         
         y_offset = 90
         for i, opcion in enumerate(lista_opciones):
             icono = opcion.get("icono", "")
             nombre = opcion.get("nombre", "")
-            
-            # MAGIA VISUAL: Si es un menú que tiene más opciones adentro, le ponemos la flechita
             indicador = "  >" if opcion["tipo"] == "submenu" else ""
             
-            # 1. Dibujar el ícono usando la fuente de FontAwesome
+            # Dibujar Ícono y Texto usando las fuentes correctas
             self.screen.draw.text((20, y_offset), icono, font=self.icon_main, fill=COLORS["primary"])
-            
-            # 2. Dibujar el texto normal usando la fuente de texto, un poco desplazado en X (X=55)
-            texto_opcion = f"{nombre}{indicador}"
-            self.screen.draw.text((55, y_offset), texto_opcion, font=self.font_main, fill="white")
+            self.screen.draw.text((55, y_offset), f"{nombre}{indicador}", font=self.font_main, fill="white")
             
             y_offset += 45
 

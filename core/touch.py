@@ -8,6 +8,7 @@ class TouchScreen:
             self.spi = spidev.SpiDev()
             self.spi.open(bus, device)
             self.spi.max_speed_hz = 50000  # Velocidad súper segura para la Raspberry Pi 1
+            self.spi.no_cs = False
         except Exception as e:
             print(f"[ERROR TACTIL] No se pudo iniciar el bus SPI: {e}")
             self.spi = None
