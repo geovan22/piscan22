@@ -13,32 +13,39 @@ class ScreenController:
         self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.daemon_path = os.path.join(self.base_dir, "core", "kedei_daemon")
         
-        # Archivos mágicos que el motor en C está esperando (En la memoria RAM)
         self.img_path = "/dev/shm/piscan_frame.bmp"
         self.flag_path = "/dev/shm/frame_ready"
         
-        # 1. Matar cualquier daemon fantasma viejo por seguridad
+        print("[DISPLAY] Limpiando memoria y procesos fantasma...")
         subprocess.run(["sudo", "killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
-        time.sleep(0.5) # Pausa breve para liberar el bus SPI
         
-        # 2. Arrancar el motor en C en segundo plano
+        # CRÍTICO: Borrar archivos viejos de la RAM para que el motor C no crashee al arrancar
+        subprocess.run(["sudo", "rm", "-f", self.img_path, self.flag_path])
+        time.sleep(0.5)
+        
         print("[DISPLAY] Iniciando Kedei Daemon en segundo plano...")
         self.daemon = subprocess.Popen(["sudo", self.daemon_path])
+        
+        # CRÍTICO: Darle 2 segundos al motor en C para resetear eléctricamente la LCD 
+        # y pintarla de negro ANTES de que Python dispare la primera imagen.
+        print("[DISPLAY] Despertando el hardware de video...")
+        time.sleep(2)
 
     def clear(self, color="black"):
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
     def push_to_screen(self):
-        """Envía el lienzo al Daemon instantáneamente y sin barrido"""
-        # 1. Guardar la imagen en RAM
-        self.image.save(self.img_path)
-        
-        # 2. Crear el archivo bandera para despertar al Daemon
-        with open(self.flag_path, "w") as f:
-            f.write("1")
+        try:
+            # 1. Guardar forzando explícitamente el formato BMP de 24 bits
+            self.image.convert("RGB").save(self.img_path, format="BMP")
+            
+            # 2. Levantar la bandera para despertar al Daemon
+            with open(self.flag_path, "w") as f:
+                f.write("1")
+        except Exception as e:
+            print(f"[ERROR DISPLAY] Falló la inyección en RAM: {e}")
 
     def __del__(self):
-        # Limpieza al cerrar el programa
         if hasattr(self, 'daemon'):
             self.daemon.kill()
         subprocess.run(["sudo", "killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
