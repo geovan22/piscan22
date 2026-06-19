@@ -61,8 +61,8 @@ class MainWindow:
         """Dibuja el área central (Y: 30 a 290)"""
         self.screen.draw.rectangle((0, 30, self.width, 290), fill="#000000")
         
-        # Título del Menú
-        self.screen.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_large, fill=COLORS["primary"])
+        # Título del Menú (Usamos font_main ya que es tu fuente principal)
+        self.screen.draw.text((15, 40), f"--- {titulo_menu} ---", font=self.font_main, fill=COLORS["primary"])
         
         y_offset = 90
         for i, opcion in enumerate(lista_opciones):
@@ -71,12 +71,14 @@ class MainWindow:
             
             # MAGIA VISUAL: Si es un menú que tiene más opciones adentro, le ponemos la flechita
             indicador = "  >" if opcion["tipo"] == "submenu" else ""
-                
-            # Combinamos todo: Ícono + Espacio + Nombre + Indicador
-            texto_final = f"{icono}  {nombre}{indicador}"
             
-            # OJO: Asumo que self.font_medium es la fuente que soporta los caracteres de FontAwesome
-            self.screen.draw.text((20, y_offset), texto_final, font=self.font_medium, fill="white")
+            # 1. Dibujar el ícono usando la fuente de FontAwesome
+            self.screen.draw.text((20, y_offset), icono, font=self.icon_main, fill=COLORS["primary"])
+            
+            # 2. Dibujar el texto normal usando la fuente de texto, un poco desplazado en X (X=55)
+            texto_opcion = f"{nombre}{indicador}"
+            self.screen.draw.text((55, y_offset), texto_opcion, font=self.font_main, fill="white")
+            
             y_offset += 45
 
     def draw_footer(self, mensaje="Listo."):
