@@ -10,28 +10,30 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
-    debug_print("MAIN", "=== INICIANDO PISCAN22: SINCRONIZACIÓN PERFECTA ===")
+    debug_print("MAIN", "=== INICIANDO PISCAN22: MÁXIMA ESTABILIDAD ===")
     
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     touch = TouchScreen()
     
-    # 1. LOGO DE INICIO AL 100%
-    debug_print("MAIN", "Mostrando Logo redimensionado...")
+    # 1. LOGO DE INICIO (Usa el archivo full.bmp)
+    debug_print("MAIN", "Cargando Logo...")
     screen.clear(color="#000000")
     window.draw_logo()
     screen.push_full_screen()
-    # LA CLAVE DE LA ESTABILIDAD: 4 segundos para que los cables SPI terminen.
-    time.sleep(4) 
     
-    # 2. CARGA DEL MENÚ INICIAL
+    # PAUSA CRÍTICA: Subimos a 6 segundos. Garantizamos que el demonio
+    # termine de leer full.bmp al 100% antes de avanzar.
+    time.sleep(6) 
+    
+    # 2. CARGA DEL MENÚ INICIAL POR SECTORES (Como en la Fase 3)
     menu_actual = "Principal"
     
-    def refresh_full_ui(menu_name):
-        """Dibuja en RAM y manda toda la pantalla de un solo golpe con tiempo seguro."""
-        debug_print("MAIN", f"Enviando pantalla completa: Menú {menu_name}")
+    def renderizar_y_enviar_menu(menu_name):
+        debug_print("MAIN", f"Dibujando menú en RAM: {menu_name}")
         screen.clear(color="#000000")
+        
         window.draw_header(
             cpu=sys_mon.get_cpu(), 
             ram=sys_mon.get_ram(), 
@@ -42,20 +44,27 @@ def main():
         window.draw_body(menu_name, MENU_ESTRUCTURA[menu_name])
         window.draw_footer(mensaje="Sistema Activo")
         
-        # Enviar todo el bloque a la vez evita que el motor C se coma comandos
-        screen.push_full_screen()
-        # LA PROTECCIÓN CONTRA PANTALLA BLANCA:
-        # Como la pantalla se dibuja de arriba hacia abajo (tarda casi 3s),
-        # si Python lee el táctil antes de que termine, colapsa el SPI.
-        time.sleep(4) 
+        # Enviamos en cascada usando archivos diferentes (header.bmp, body.bmp, etc.)
+        # Así JAMÁS corrompemos el full.bmp del logo.
+        debug_print("MAIN", "Enviando Header...")
+        screen.push_header()
+        time.sleep(1.5)
+        
+        debug_print("MAIN", "Enviando Body...")
+        screen.push_body()
+        time.sleep(2.5) # El body requiere más tiempo porque es grande
+        
+        debug_print("MAIN", "Enviando Footer...")
+        screen.push_footer()
+        time.sleep(1.5)
 
     # Pintamos el menú por primera vez
-    refresh_full_ui(menu_actual)
+    renderizar_y_enviar_menu(menu_actual)
     
     ultimo_minuto = datetime.now().minute
     cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
-    debug_print("MAIN", "Bucle principal iniciado (Touch y Reloj activos).")
+    debug_print("MAIN", "Bucle táctil y reloj iniciado.")
     
     try:
         while True:
@@ -63,7 +72,6 @@ def main():
             minuto_actual = datetime.now().minute
             if minuto_actual != ultimo_minuto:
                 if not os.path.exists(cmd_file_path):
-                    debug_print("MAIN", "Actualizando reloj del Header...")
                     window.draw_header(
                         cpu=sys_mon.get_cpu(), 
                         ram=sys_mon.get_ram(), 
@@ -72,8 +80,7 @@ def main():
                         battery=sys_mon.get_battery()
                     )
                     screen.push_header()
-                    # El header es pequeño, con 1 segundo de pausa es suficiente
-                    time.sleep(1) 
+                    time.sleep(1)
                     ultimo_minuto = minuto_actual
 
             # B. NAVEGACIÓN TÁCTIL
@@ -90,20 +97,20 @@ def main():
                             
                             if opcion["tipo"] in ["submenu", "volver"]:
                                 menu_actual = opcion["destino"]
-                                refresh_full_ui(menu_actual)
+                                renderizar_y_enviar_menu(menu_actual)
                             
                             elif opcion["tipo"] == "accion":
-                                debug_print("MAIN", f"Ejecutando: {opcion['comando']}")
+                                debug_print("MAIN", f"Comando lanzado: {opcion['comando']}")
                                 window.draw_footer(mensaje=f"Iniciando: {opcion['nombre']}")
                                 screen.push_footer()
-                                time.sleep(1) # Pausa para que se dibuje el footer seguro
+                                time.sleep(1.5)
                                 
-                                # Simulación de la herramienta trabajando
+                                # Simulación de trabajo de la herramienta
                                 time.sleep(1.0)
                                 
                                 window.draw_footer(mensaje="Sistema Activo")
                                 screen.push_footer()
-                                time.sleep(1)
+                                time.sleep(1.5)
 
             time.sleep(0.1) 
             
