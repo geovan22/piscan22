@@ -1,4 +1,3 @@
-# core/touch.py
 import spidev
 
 class TouchScreen:

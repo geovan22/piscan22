@@ -1,5 +1,3 @@
-# ui/window.py
-
 from datetime import datetime
 from PIL import ImageDraw, ImageFont
 from ui.themes import COLORS, FONTS, FONT_PATH, ICON_FONT_PATH
@@ -29,12 +27,6 @@ class MainWindow:
     @property
     def draw(self):
         return self.screen.draw
-
-    def draw_logo(self):
-        """Dibuja la pantalla inicial de arranque"""
-        self.draw.rectangle((0, 0, self.width, self.height), fill="#000000")
-        self.draw.text((150, 130), ">> PiScan22 <<", font=self.font_main, fill=COLORS["primary"])
-        self.draw.text((170, 170), "Iniciando...", font=self.font_small, fill="white")
 
     def draw_header(self, cpu="0%", ram="0%", temp="0C", connected=False, battery=100):
         self.draw.rectangle((0, 0, self.width, 30), fill="#111111")

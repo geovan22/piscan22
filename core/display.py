@@ -1,4 +1,3 @@
-# core/display.py
 import os
 import subprocess
 import time
@@ -30,17 +29,11 @@ class ScreenController:
         img_path = "/dev/shm/full.bmp"
         tmp_path = "/dev/shm/full.tmp"
         
-        # Guardado atómico
         self.image.convert("RGB").save(tmp_path, format="BMP")
         os.rename(tmp_path, img_path)
         
-        # Enviar orden
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
-            
-        # BLOQUEO FÍSICO: Obligamos a Python a no hacer absolutamente NADA 
-        # por 1.5 segundos. Esto blinda el bus SPI mientras el C dibuja.
-        time.sleep(1.5)
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
