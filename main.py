@@ -10,26 +10,26 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
-    debug_print("MAIN", "=== INICIANDO FASE 4: UI COMPLETA + TÁCTIL + RELOJ INTELIGENTE ===")
+    debug_print("MAIN", "=== INICIANDO FASE 4.1: UI SECTORIZADA + RELOJ INTELIGENTE ===")
     
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     touch = TouchScreen()
     
-    # 1. LOGO DE INICIO AL 100%
+    # 1. LOGO DE INICIO AL 100% (Pantalla completa, el bus está fresco)
     debug_print("MAIN", "Mostrando Logo redimensionado...")
     screen.clear(color="#000000")
     window.draw_logo()
     screen.push_full_screen()
-    time.sleep(3.5) # Pausa para apreciar el logo
+    time.sleep(3.5) # Pausa para apreciar el logo y estabilizar el bus
     
-    # 2. RENDERIZADO INICIAL (TODO DE UNA VEZ PARA QUE NO SE PIERDA NADA)
-    debug_print("MAIN", "Dibujando UI completa en la RAM...")
+    # 2. RENDERIZADO INICIAL SECTORIZADO (Como en la Fase 3 que sí funcionó)
+    debug_print("MAIN", "Dibujando UI en la RAM...")
     menu_actual = "Principal"
     
     def refresh_full_ui(menu_name):
-        """Dibuja y envía la pantalla completa. Usado al inicio y al cambiar de menú."""
+        """Dibuja en RAM y envía pieza por pieza para no saturar la pantalla blanca."""
         screen.clear(color="#000000")
         window.draw_header(
             cpu=sys_mon.get_cpu(), 
@@ -41,14 +41,22 @@ def main():
         window.draw_body(menu_name, MENU_ESTRUCTURA[menu_name])
         window.draw_footer(mensaje="Sistema Activo.")
         
-        debug_print("MAIN", f"Enviando pantalla completa: Menú {menu_name}")
-        screen.push_full_screen()
-        time.sleep(0.5) # Breve pausa de seguridad tras un envío masivo
+        debug_print("MAIN", f"Enviando sectores: Menú {menu_name}")
+        
+        # Envíos en bloque pequeño (Cero desfaces, cero pantallas blancas)
+        screen.push_header()
+        time.sleep(0.5)
+        
+        screen.push_body()
+        time.sleep(0.5)
+        
+        screen.push_footer()
+        time.sleep(0.5)
 
-    # Mandamos el menú inicial de un solo golpe
+    # Mandamos el menú inicial por sectores
     refresh_full_ui(menu_actual)
     
-    # Variable para el "Reloj Inteligente"
+    # Variables de control
     ultimo_minuto = datetime.now().minute
     cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
@@ -58,7 +66,6 @@ def main():
     try:
         while True:
             # A. EVENTO 1: VERIFICAR TÁCTIL (Navegación)
-            # Solo leemos el táctil si no hay envíos pendientes al motor C
             if not os.path.exists(cmd_file_path):
                 pos = touch.get_touch()
                 if pos:
@@ -75,8 +82,7 @@ def main():
                                 menu_actual = opcion["destino"]
                                 refresh_full_ui(menu_actual)
 
-            # B. EVENTO 2: RELOJ INTELIGENTE (Header)
-            # Solo enviamos el bloque del Header si cambió el minuto físico
+            # B. EVENTO 2: RELOJ INTELIGENTE (Actualiza Header solo si cambia el minuto)
             minuto_actual = datetime.now().minute
             if minuto_actual != ultimo_minuto:
                 debug_print("MAIN", "Cambio de minuto detectado. Actualizando Header...")
@@ -88,7 +94,7 @@ def main():
                     battery=sys_mon.get_battery()
                 )
                 screen.push_header() 
-                ultimo_minuto = minuto_actual # Reseteamos el contador
+                ultimo_minuto = minuto_actual
             
             # C. DESCANSO DEL PROCESADOR
             time.sleep(0.1) 
