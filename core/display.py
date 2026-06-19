@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 from PIL import Image, ImageDraw
 
 class ScreenController:
@@ -10,36 +11,34 @@ class ScreenController:
         self.draw = ImageDraw.Draw(self.image)
         
         self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.kedei_path = os.path.join(self.base_dir, "core", "kedei_lcd")
+        self.daemon_path = os.path.join(self.base_dir, "core", "kedei_daemon")
+        
+        # Archivos mágicos que el motor en C está esperando (En la memoria RAM)
+        self.img_path = "/dev/shm/piscan_frame.bmp"
+        self.flag_path = "/dev/shm/frame_ready"
+        
+        # 1. Matar cualquier daemon fantasma viejo por seguridad
+        subprocess.run(["sudo", "killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
+        time.sleep(0.5) # Pausa breve para liberar el bus SPI
+        
+        # 2. Arrancar el motor en C en segundo plano
+        print("[DISPLAY] Iniciando Kedei Daemon en segundo plano...")
+        self.daemon = subprocess.Popen(["sudo", self.daemon_path])
 
     def clear(self, color="black"):
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
-    def push_full_screen(self):
-        """Solo se usa una vez al arrancar el sistema"""
-        ruta = "/dev/shm/full.bmp"
-        self.image.save(ruta)
-        subprocess.run([self.kedei_path, ruta], check=False)
+    def push_to_screen(self):
+        """Envía el lienzo al Daemon instantáneamente y sin barrido"""
+        # 1. Guardar la imagen en RAM
+        self.image.save(self.img_path)
+        
+        # 2. Crear el archivo bandera para despertar al Daemon
+        with open(self.flag_path, "w") as f:
+            f.write("1")
 
-    def push_header(self):
-        """Corta un hilito de 480x30 y lo pega arriba (cero barrido)"""
-        ruta = "/dev/shm/header.bmp"
-        # Coordenadas: (Izquierda, Arriba, Derecha, Abajo)
-        zona = self.image.crop((0, 0, 480, 30))
-        zona.save(ruta)
-        # Se le pasa el archivo y las coordenadas X=0, Y=0
-        subprocess.run([self.kedei_path, ruta, "0", "0"], check=False)
-
-    def push_body(self):
-        """Actualiza solo el menú central"""
-        ruta = "/dev/shm/body.bmp"
-        zona = self.image.crop((0, 30, 480, 290))
-        zona.save(ruta)
-        subprocess.run([self.kedei_path, ruta, "0", "30"], check=False)
-
-    def push_footer(self):
-        """Actualiza solo la barra inferior"""
-        ruta = "/dev/shm/footer.bmp"
-        zona = self.image.crop((0, 290, 480, 320))
-        zona.save(ruta)
-        subprocess.run([self.kedei_path, ruta, "0", "290"], check=False)
+    def __del__(self):
+        # Limpieza al cerrar el programa
+        if hasattr(self, 'daemon'):
+            self.daemon.kill()
+        subprocess.run(["sudo", "killall", "kedei_daemon"], stderr=subprocess.DEVNULL)
