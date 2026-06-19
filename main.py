@@ -10,27 +10,28 @@ from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
 def main():
-    debug_print("MAIN", "=== INICIANDO PISCAN22: SEMÁFORO DE HARDWARE ACTIVO ===")
+    debug_print("MAIN", "=== INICIANDO PISCAN22: SINCRONIZACIÓN PERFECTA ===")
     
     screen = ScreenController()
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     touch = TouchScreen()
     
-    # 1. LOGO DE INICIO
-    debug_print("MAIN", "Cargando Logo...")
+    # 1. LOGO DE INICIO AL 100%
+    debug_print("MAIN", "Mostrando Logo redimensionado...")
     screen.clear(color="#000000")
     window.draw_logo()
-    # screen.push_full_screen() ahora pausará el sistema automáticamente por 2.5s
-    screen.push_full_screen() 
+    screen.push_full_screen()
+    # LA CLAVE DE LA ESTABILIDAD: 4 segundos para que los cables SPI terminen.
+    time.sleep(4) 
     
-    # 2. CARGA DEL MENÚ SECTORIZADA
+    # 2. CARGA DEL MENÚ INICIAL
     menu_actual = "Principal"
     
-    def renderizar_y_enviar_menu(menu_name):
-        debug_print("MAIN", f"Preparando menú en RAM: {menu_name}")
+    def refresh_full_ui(menu_name):
+        """Dibuja en RAM y manda toda la pantalla de un solo golpe con tiempo seguro."""
+        debug_print("MAIN", f"Enviando pantalla completa: Menú {menu_name}")
         screen.clear(color="#000000")
-        
         window.draw_header(
             cpu=sys_mon.get_cpu(), 
             ram=sys_mon.get_ram(), 
@@ -41,18 +42,16 @@ def main():
         window.draw_body(menu_name, MENU_ESTRUCTURA[menu_name])
         window.draw_footer(mensaje="Sistema Activo")
         
-        debug_print("MAIN", "Iniciando ráfaga de envíos. El semáforo los pondrá en cola.")
-        # La magia del semáforo: Python no avanzará de línea hasta 
-        # que cada bloque esté completamente dibujado en el panel.
-        screen.push_header()
-        screen.push_body()
-        screen.push_footer()
-        debug_print("MAIN", "Menú renderizado al 100%.")
+        # Enviar todo el bloque a la vez evita que el motor C se coma comandos
+        screen.push_full_screen()
+        # LA PROTECCIÓN CONTRA PANTALLA BLANCA:
+        # Como la pantalla se dibuja de arriba hacia abajo (tarda casi 3s),
+        # si Python lee el táctil antes de que termine, colapsa el SPI.
+        time.sleep(4) 
 
-    # Primera carga del menú
-    renderizar_y_enviar_menu(menu_actual)
+    # Pintamos el menú por primera vez
+    refresh_full_ui(menu_actual)
     
-    # Reloj y Control
     ultimo_minuto = datetime.now().minute
     cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
@@ -73,6 +72,8 @@ def main():
                         battery=sys_mon.get_battery()
                     )
                     screen.push_header()
+                    # El header es pequeño, con 1 segundo de pausa es suficiente
+                    time.sleep(1) 
                     ultimo_minuto = minuto_actual
 
             # B. NAVEGACIÓN TÁCTIL
@@ -89,18 +90,20 @@ def main():
                             
                             if opcion["tipo"] in ["submenu", "volver"]:
                                 menu_actual = opcion["destino"]
-                                renderizar_y_enviar_menu(menu_actual)
+                                refresh_full_ui(menu_actual)
                             
                             elif opcion["tipo"] == "accion":
                                 debug_print("MAIN", f"Ejecutando: {opcion['comando']}")
                                 window.draw_footer(mensaje=f"Iniciando: {opcion['nombre']}")
                                 screen.push_footer()
+                                time.sleep(1) # Pausa para que se dibuje el footer seguro
                                 
-                                # Simulamos trabajo
+                                # Simulación de la herramienta trabajando
                                 time.sleep(1.0)
                                 
                                 window.draw_footer(mensaje="Sistema Activo")
                                 screen.push_footer()
+                                time.sleep(1)
 
             time.sleep(0.1) 
             
