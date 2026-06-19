@@ -13,39 +13,56 @@ def main():
     touch = TouchScreen() 
     
     print("Iniciando Interfaz...")
-    menu_actual = "Principal"
+    cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
-    # Dibujo Inicial
+    # --- 1. PANTALLA DE LOGO / BOOT ---
     screen.clear(color="#000000")
-    window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-    window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
+    # Dibujamos un logo en texto (puedes cambiarlo por una imagen luego)
+    window.draw.text((160, 130), ">> PiScan22 <<", font=window.font_main, fill="#00FF00")
+    window.draw.text((150, 160), "Iniciando sistema...", font=window.font_small, fill="white")
     screen.push_full_screen()
     
-    cmd_file_path = "/dev/shm/piscan_cmd.txt"
+    # PAUSA CRÍTICA: Esperamos 2 segundos para que veas el logo 
+    # y el bus SPI termine de dibujar antes de pasar al menú.
+    time.sleep(2)
+    
+    menu_actual = "Principal"
+    
+    def refresh_screen(m_actual):
+        """Dibuja la interfaz y bloquea Python hasta que el C termine de transmitir"""
+        screen.clear(color="#000000")
+        window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
+        window.draw_body(m_actual, MENU_ESTRUCTURA[m_actual])
+        window.draw_footer(mensaje="Esperando orden...")
+        screen.push_full_screen()
+        
+        # PAUSA CRÍTICA: La Pi 1 B necesita aprox 1 segundo para enviar la imagen completa
+        # Esto evita que el panel táctil interrumpa la señal de video.
+        time.sleep(1)
+
+    # --- 2. DIBUJO DEL MENÚ INICIAL ---
+    refresh_screen(menu_actual)
     
     try:
         while True:
-            # Solo procesar táctil si el archivo de comando NO existe (bus libre)
+            # Solo leer el touch si el archivo de comando no existe
             if not os.path.exists(cmd_file_path):
                 pos = touch.get_touch()
                 if pos:
                     x, y = pos
+                    # Área del menú
                     if 90 < y < 280:
                         indice = int((y - 90) // 45)
                         opciones = MENU_ESTRUCTURA[menu_actual]
                         
                         if 0 <= indice < len(opciones):
                             opcion = opciones[indice]
-                            # Navegación
                             if opcion["tipo"] in ["submenu", "volver"]:
                                 menu_actual = opcion["destino"]
-                                screen.clear(color="#000000")
-                                window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-                                window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-                                screen.push_full_screen()
-                                time.sleep(0.5)
+                                refresh_screen(menu_actual)
             
-            time.sleep(0.2) # Pausa mayor para evitar saturación de bus SPI
+            # Relajar el procesador
+            time.sleep(0.1)
             
     except KeyboardInterrupt:
         print("Apagando...")
