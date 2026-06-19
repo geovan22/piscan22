@@ -22,26 +22,29 @@ def main():
     window.draw_footer(mensaje="Sistema Activo")
     screen.push_full_screen()
     
+    cmd_file_path = "/dev/shm/piscan_cmd.txt"
+    
     try:
         while True:
-            pos = touch.get_touch()
-            if pos:
-                x, y = pos
-                if 90 < y < 280:
-                    indice = int((y - 90) // 45)
-                    opciones = MENU_ESTRUCTURA[menu_actual]
-                    
-                    if 0 <= indice < len(opciones):
-                        opcion = opciones[indice]
+            if not os.path.exists(cmd_file_path):
+                pos = touch.get_touch()
+                if pos:
+                    x, y = pos
+                    if 90 < y < 280:
+                        indice = int((y - 90) // 45)
+                        opciones = MENU_ESTRUCTURA[menu_actual]
                         
-                        if opcion["tipo"] in ["submenu", "volver"]:
-                            menu_actual = opcion["destino"]
-                            screen.clear(color="#000000")
-                            window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
-                            window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-                            window.draw_footer(mensaje="Navegando...")
-                            screen.push_full_screen()
-                            time.sleep(0.5) 
+                        if 0 <= indice < len(opciones):
+                            opcion = opciones[indice]
+                            
+                            if opcion["tipo"] in ["submenu", "volver"]:
+                                menu_actual = opcion["destino"]
+                                screen.clear(color="#000000")
+                                window.draw_header(cpu=sys_mon.get_cpu(), ram=sys_mon.get_ram(), temp=sys_mon.get_temp(), connected=sys_mon.is_connected(), battery=sys_mon.get_battery())
+                                window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
+                                window.draw_footer(mensaje="Navegando...")
+                                screen.push_full_screen()
+                                time.sleep(0.5)
             
             time.sleep(0.1) 
             

@@ -27,11 +27,9 @@ class ScreenController:
 
     def push_full_screen(self):
         img_path = "/dev/shm/full.bmp"
-        tmp_path = "/dev/shm/full.tmp"
-        
-        self.image.convert("RGB").save(tmp_path, format="BMP")
-        os.rename(tmp_path, img_path)
-        
+        # Guardado directo original sin archivos temporales
+        self.image.save(img_path, format="BMP")
+        time.sleep(0.1)
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
 
