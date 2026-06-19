@@ -6,16 +6,19 @@ from PIL import Image
 from ui.window import MainWindow
 from ui.menu_config import MENU_ESTRUCTURA
 
-def show_splash(screen):
+def show_splash(screen, espera=5):
+    """Carga y muestra la imagen de inicio (Splash Screen)"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     splash_path = os.path.join(base_dir, "ui", "assets", "images", "splash.bmp")
     
     try:
         splash_img = Image.open(splash_path).resize((screen.width, screen.height))
         screen.image.paste(splash_img, (0, 0))
-        screen.push_to_screen() 
-        print("Pantalla de inicio cargada. Esperando 5 segundos...")
-        time.sleep(5)
+        screen.push_full_screen() 
+        
+        # Pausa opcional para dejar que el usuario vea el logo
+        if espera > 0:
+            time.sleep(espera)
     except OSError:
         print(f"[ERROR] No se encontró la imagen en: {splash_path}")
 
@@ -24,8 +27,9 @@ def main():
     sys_mon = SystemMonitor()
     window = MainWindow(screen)
     
-    # 1. Mostrar Splash
-    show_splash(screen)
+    print("Iniciando PiScan22...")
+    # 1. Mostrar Splash al arrancar (espera 4 segundos)
+    show_splash(screen, espera=4)
     
     menu_actual = "Principal"
     opcion_seleccionada = 0
@@ -34,7 +38,7 @@ def main():
     
     try:
         while True:
-            # 2. Dibujar todo en la memoria RAM de Python (Súper rápido, no afecta la pantalla física)
+            # 2. Dibujar todo en la memoria RAM de Python
             screen.clear(color="#000000")
             window.draw_header(
                 cpu=sys_mon.get_cpu(), 
@@ -50,17 +54,21 @@ def main():
             )
             window.draw_footer(mensaje="Sistema Activo y Monitoreando...")
             
-            # 3. Soltar la bandera. El Daemon C reescribirá la pantalla al instante.
-            # Como los píxeles del menú no cambiaron de color, tu ojo solo verá cambiar el reloj.
+            # 3. Soltar el comando. Como arreglamos el semáforo, nunca chocará con el C.
+            # En el primer ciclo esto pinta el menú completo perfectamente.
+            # En los siguientes ciclos, como no usamos push_header(), Python sobreescribe
+            # todo, pero visualmente es invisible porque solo cambian los números.
             screen.push_to_screen()
             
-            # Esperar 2 segundos para la próxima lectura real
             time.sleep(2)
             
     except KeyboardInterrupt:
-        print("\nSaliendo de PiScan22...")
-        screen.clear(color="#000000")
-        screen.push_to_screen()
+        print("\nSaliendo de PiScan22... Mostrando logo de despedida.")
+        # 4. Mostrar el logo antes de morir
+        show_splash(screen, espera=1)
+        
+        # Le damos medio segundo al motor C para que termine de pintar el logo
+        # antes de que el script principal lo asesine en la memoria.
         time.sleep(0.5)
 
 if __name__ == "__main__":

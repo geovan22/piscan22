@@ -65,8 +65,15 @@ class ScreenController:
         self._send_cmd(f"IMG 0 290 {img_path}")
 
     def _send_cmd(self, command_str):
-        """Escribe la línea en el archivo de la RAM y el motor C la procesa instantáneamente"""
+        """Escribe la orden, pero espera educadamente a que el motor C termine la anterior"""
         try:
+            timeout = 0
+            # SEMÁFORO: Esperar a que el motor C borre el archivo (significa que ya terminó de dibujar)
+            # Esperamos un máximo de 2 segundos para evitar que Python se quede congelado
+            while os.path.exists(self.cmd_path) and timeout < 200:
+                time.sleep(0.01)
+                timeout += 1
+                
             with open(self.cmd_path, "w") as f:
                 f.write(command_str + "\n")
         except Exception as e:
