@@ -1,3 +1,4 @@
+# core/display.py - Controlador de pantalla para PiScan
 import os
 import subprocess
 import time
@@ -26,18 +27,19 @@ class ScreenController:
         self.draw = ImageDraw.Draw(self.image)
 
     def push_full_screen(self):
-        """Envío atómico con espera de estabilización de bus"""
+        """Envío atómico: la única forma de evitar el bloqueo en Pi 1 B"""
         img_path = "/dev/shm/full.bmp"
         tmp_path = "/dev/shm/full.tmp"
         
+        # Guardado atómico
         self.image.convert("RGB").save(tmp_path, format="BMP")
         os.rename(tmp_path, img_path)
         
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
         
-        # Espera mínima para que el daemon en C capture el archivo
-        time.sleep(0.2) 
+        # Pausa necesaria para que el bus SPI libere la carga
+        time.sleep(0.3)
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

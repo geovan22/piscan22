@@ -1,3 +1,4 @@
+# main.py - Punto de entrada principal para la aplicación PiScan
 import os
 import time
 from core.display import ScreenController
@@ -15,17 +16,21 @@ def main():
     print("Iniciando Interfaz...")
     menu_actual = "Principal"
     
+    def refresh_screen(m_actual):
+        """Dibuja toda la interfaz en memoria y la envía de una vez"""
+        screen.clear(color="#000000")
+        window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
+        window.draw_body(m_actual, MENU_ESTRUCTURA[m_actual])
+        window.draw_footer(mensaje="Sistema Activo")
+        screen.push_full_screen()
+
     # Dibujo Inicial
-    screen.clear(color="#000000")
-    window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-    window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-    screen.push_full_screen()
+    refresh_screen(menu_actual)
     
     cmd_file_path = "/dev/shm/piscan_cmd.txt"
     
     try:
         while True:
-            # Solo procesar táctil si el archivo de comando NO existe (bus libre)
             if not os.path.exists(cmd_file_path):
                 pos = touch.get_touch()
                 if pos:
@@ -36,16 +41,12 @@ def main():
                         
                         if 0 <= indice < len(opciones):
                             opcion = opciones[indice]
-                            # Navegación
                             if opcion["tipo"] in ["submenu", "volver"]:
                                 menu_actual = opcion["destino"]
-                                screen.clear(color="#000000")
-                                window.draw_header(sys_mon.get_cpu(), sys_mon.get_ram(), sys_mon.get_temp(), sys_mon.is_connected(), sys_mon.get_battery())
-                                window.draw_body(menu_actual, MENU_ESTRUCTURA[menu_actual])
-                                screen.push_full_screen()
+                                refresh_screen(menu_actual)
                                 time.sleep(0.5)
             
-            time.sleep(0.2) # Pausa mayor para evitar saturación de bus SPI
+            time.sleep(0.2)
             
     except KeyboardInterrupt:
         print("Apagando...")
