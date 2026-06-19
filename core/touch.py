@@ -1,4 +1,4 @@
-# core/touch.py
+# core/touch.py - Controlador de pantalla táctil para PiScan
 import spidev
 
 class TouchScreen:

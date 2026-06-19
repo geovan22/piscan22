@@ -26,7 +26,7 @@ class ScreenController:
         self.draw = ImageDraw.Draw(self.image)
 
     def push_full_screen(self):
-        """Envía la imagen completa de forma atómica para evitar pantalla blanca"""
+        """Envío atómico con espera de estabilización de bus"""
         img_path = "/dev/shm/full.bmp"
         tmp_path = "/dev/shm/full.tmp"
         
@@ -35,6 +35,9 @@ class ScreenController:
         
         with open(self.cmd_path, "w") as f:
             f.write(f"IMG 0 0 {img_path}\n")
+        
+        # Espera mínima para que el daemon en C capture el archivo
+        time.sleep(0.2) 
 
     def __del__(self):
         subprocess.run(["killall", "kedei_daemon"], stderr=subprocess.DEVNULL)

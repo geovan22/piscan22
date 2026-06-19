@@ -1,3 +1,4 @@
+# ui/themes.py - Definición de temas y estilos para la interfaz gráfica de PiScan
 import os
 
 # Determinar la ruta absoluta base del proyecto
