@@ -12,7 +12,7 @@ def main():
     window = MainWindow(screen)
     
     touch = TouchScreen()
-    touch.init() 
+    #touch.init() 
     
     print("Iniciando PiScan22...")
     menu_actual = "Principal"
