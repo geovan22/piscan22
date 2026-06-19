@@ -4,7 +4,6 @@ import time
 from PIL import Image, ImageDraw
 
 class ScreenController:
-    # Como ya vimos que "IMG" es la palabra mágica, la dejamos fija.
     CMD_NAME = "IMG"
 
     def __init__(self):
@@ -28,9 +27,9 @@ class ScreenController:
         self.draw.rectangle((0, 0, self.width, self.height), fill=color)
 
     def _wait_for_daemon(self):
-        """SEMÁFORO: Espera pacientemente a que el C termine de pintar la orden anterior"""
+        """SEMÁFORO: Aumentado a 10 segundos (1000 ciclos) para la Raspberry Pi 1 B"""
         timeout = 0
-        while os.path.exists(self.cmd_path) and timeout < 200:
+        while os.path.exists(self.cmd_path) and timeout < 1000:
             time.sleep(0.01)
             timeout += 1
 
@@ -38,7 +37,7 @@ class ScreenController:
         self.push_full_screen()
 
     def push_full_screen(self):
-        self._wait_for_daemon() # 🛑 Esperar ANTES de sobreescribir la imagen
+        self._wait_for_daemon() # Espera antes de enviar
         img_path = "/dev/shm/full.bmp"
         self.image.save(img_path)
         self._send_cmd(f"{self.CMD_NAME} 0 0 {img_path}")
